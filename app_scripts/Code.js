@@ -1,85 +1,197 @@
-function setupERP() {
-  const ss = SpreadsheetApp.openById("1WIw-XsaBR7m7_vODyiHHVXloeWh9QV1AXb79fTnMkaw");
+// Main ERP API Functions
+// Database operations are now in Database.js
 
-  const schemas = {
-    Students: [
-      "student_id","admission_id","first_name","last_name","father_name","mother_name",
-      "dob","gender","email","phone","address","programme_id","programme_name",
-      "admission_date","enrollment_status","year_of_study","photo_drive_file_id",
-      "hostel_alloc_id","library_card_id","created_at","updated_at"
+/**
+ * Get API documentation
+ */
+function getAPIDocumentation() {
+  const docs = {
+    base_url: "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec",
+    setup_instructions: [
+      "1. Deploy this Apps Script as a web app",
+      "2. Replace YOUR_SCRIPT_ID with your actual script ID",
+      "3. Set 'Execute as: Me' and 'Who has access: Anyone'",
+      "4. Run setupERP() to initialize database",
+      "5. Run initializeAdminUser() to create admin account"
     ],
-    Admissions: [
-      "admission_id","application_ref","applicant_name","first_name","last_name",
-      "email","phone","programme_applied","documents","applied_on","status",
-      "assigned_officer_id","verifier_notes","admitted_on","student_id",
-      "created_at","updated_at"
-    ],
-    Users: [
-      "user_id","username","email","display_name","role","hashed_password",
-      "auth_provider","last_login","active","created_at","updated_at","notes"
-    ],
-    FeeMaster: [
-      "fee_id","programme_id","component","amount","currency",
-      "effective_from","effective_to","category","created_at","updated_at"
-    ],
-    Transactions: [
-      "txn_id","student_id","admission_id","date","amount","currency","payment_mode",
-      "gateway_ref","payment_status","receipt_id","created_by","created_at","notes"
-    ],
-    Receipts: [
-      "receipt_id","txn_id","issued_by","issued_on","pdf_drive_file_id","email_sent","created_at"
-    ],
-    HostelRooms: [
-      "room_id","hostel","block","floor","room_no","bed_no","capacity","current_student_id",
-      "status","allocated_on","released_on","amenities","rent_per_month","created_at","updated_at"
-    ],
-    HostelAllocations: [
-      "alloc_id","student_id","room_id","allocated_by","allocated_on","released_on","reason",
-      "status","created_at","updated_at"
-    ],
-    Courses: [
-      "course_id","title","credits","programme_id","semester","created_at","updated_at"
-    ],
-    Enrollments: [
-      "enroll_id","student_id","course_id","enrolled_on","status","grade","marks",
-      "created_at","updated_at"
-    ],
-    Exams: [
-      "exam_id","course_id","exam_date","venue","invigilator_id","created_at","updated_at"
-    ],
-    Marks: [
-      "marks_id","exam_id","student_id","marks_obtained","grade","entered_by","entered_on"
-    ],
-    LibraryItems: [
-      "item_id","title","author","publisher","copy_no","status","borrower_id","due_date",
-      "fines","created_at","updated_at"
-    ],
-    BorrowHistory: [
-      "borrow_id","item_id","student_id","borrowed_on","returned_on","fine_amount","created_at"
-    ],
-    AuditLog: [
-      "log_id","sheet_name","entity_id","action","user_id","timestamp","diff","notes"
-    ],
-    Config: [
-      "config_key","json_value","updated_at"
-    ],
-    Notifications: [
-      "notification_id","recipient","type","subject","body","sent_on","status","response"
-    ],
-    Files: [
-      "file_id","owner_entity","file_name","mime_type","drive_folder_id","created_at","access","notes"
-    ]
+    admissions_url: "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec?path=admissions",
+    endpoints: {
+      // Authentication
+      "POST /auth/login": {
+        description: "Authenticate user",
+        body: {
+          email: "string (required)",
+          password: "string (required)"
+        }
+      },
+      "POST /auth/register": {
+        description: "Register new user",
+        body: {
+          username: "string (required)",
+          email: "string (required)",
+          password: "string (required)",
+          role: "string (required): admin|staff|student|hostel_warden",
+          display_name: "string (optional)"
+        }
+      },
+      "POST /auth/change-password": {
+        description: "Change user password",
+        body: {
+          user_id: "string (required)",
+          old_password: "string (required)",
+          new_password: "string (required)"
+        }
+      },
+
+      // User Management
+      "GET /users": {
+        description: "Get all users with optional filters",
+        query: {
+          role: "string (optional)",
+          active: "boolean (optional)"
+        }
+      },
+      "GET /users/profile": {
+        description: "Get user profile",
+        query: { user_id: "string (required)" }
+      },
+      "POST /users/create": {
+        description: "Create new user",
+        body: "Same as /auth/register"
+      },
+      "POST /users/update": {
+        description: "Update user",
+        body: {
+          user_id: "string (required)",
+          ... "any user fields to update"
+        }
+      },
+      "POST /users/delete": {
+        description: "Delete user (soft delete)",
+        body: { user_id: "string (required)" }
+      },
+
+      // Admissions
+      "GET /admissions": {
+        description: "Get all admissions with optional filters",
+        query: {
+          status: "string (optional)",
+          programme: "string (optional)",
+          email: "string (optional)"
+        }
+      },
+      "GET /admissions/my": {
+        description: "Get admissions for specific email",
+        query: { email: "string (required)" }
+      },
+      "GET /admissions/stats": {
+        description: "Get admission statistics"
+      },
+      "POST /admissions/create": {
+        description: "Create new admission application",
+        body: {
+          first_name: "string (required)",
+          last_name: "string (required)",
+          email: "string (required)",
+          phone: "string (required)",
+          programme_applied: "string (required)",
+          documents: "string (optional)"
+        }
+      },
+      "POST /admissions/update": {
+        description: "Update admission details",
+        body: {
+          admission_id: "string (required)",
+          ... "any admission fields to update"
+        }
+      },
+      "POST /admissions/update-status": {
+        description: "Update admission status",
+        body: {
+          admission_id: "string (required)",
+          status: "string (required): pending|under_review|approved|rejected|admitted",
+          verifier_notes: "string (optional)",
+          assigned_officer_id: "string (optional)"
+        }
+      },
+      "POST /admissions/admit-student": {
+        description: "Convert approved admission to student",
+        body: {
+          admission_id: "string (required)",
+          student_data: {
+            father_name: "string (optional)",
+            mother_name: "string (optional)",
+            dob: "string (optional)",
+            gender: "string (optional)",
+            address: "string (optional)",
+            programme_id: "string (optional)",
+            photo_drive_file_id: "string (optional)"
+          }
+        }
+      },
+      "POST /admissions/delete": {
+        description: "Delete admission",
+        body: { admission_id: "string (required)" }
+      },
+
+      // Audit
+      "GET /audit/logs": {
+        description: "Get audit logs with optional filters",
+        query: {
+          sheet_name: "string (optional)",
+          entity_id: "string (optional)",
+          action: "string (optional)",
+          user_id: "string (optional)",
+          start_date: "string (optional)",
+          end_date: "string (optional)"
+        }
+      }
+    }
   };
 
-  for (let sheetName in schemas) {
-    let sheet = ss.getSheetByName(sheetName);
-    if (!sheet) {
-      sheet = ss.insertSheet(sheetName);
-    } else {
-      sheet.clear(); // reset old sheet if exists
-    }
-    sheet.getRange(1, 1, 1, schemas[sheetName].length).setValues([schemas[sheetName]]);
-  }
+  return docs;
+}
 
-  Logger.log("All tables created with headers ✅");
+/**
+ * Get important URLs for the system
+ */
+function getSystemURLs() {
+  const baseUrl = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
+
+  return {
+    base_url: baseUrl,
+    admissions: {
+      get_all: `${baseUrl}?path=admissions`,
+      get_my: `${baseUrl}?path=admissions/my`,
+      get_stats: `${baseUrl}?path=admissions/stats`,
+      create: `${baseUrl}?path=admissions/create`,
+      update: `${baseUrl}?path=admissions/update`,
+      update_status: `${baseUrl}?path=admissions/update-status`,
+      admit_student: `${baseUrl}?path=admissions/admit-student`,
+      delete: `${baseUrl}?path=admissions/delete`
+    },
+    auth: {
+      login: `${baseUrl}?path=auth/login`,
+      register: `${baseUrl}?path=auth/register`,
+      change_password: `${baseUrl}?path=auth/change-password`
+    },
+    users: {
+      get_all: `${baseUrl}?path=users`,
+      get_profile: `${baseUrl}?path=users/profile`,
+      create: `${baseUrl}?path=users/create`,
+      update: `${baseUrl}?path=users/update`,
+      delete: `${baseUrl}?path=users/delete`
+    },
+    audit: {
+      logs: `${baseUrl}?path=audit/logs`
+    },
+    instructions: [
+      "Replace YOUR_SCRIPT_ID with your actual Google Apps Script ID",
+      "To find your script ID:",
+      "1. Open your deployed web app",
+      "2. Copy the ID from the URL between '/s/' and '/exec'",
+      "Example: https://script.google.com/macros/s/ABC123/exec",
+      "Your script ID is: ABC123"
+    ]
+  };
 }
