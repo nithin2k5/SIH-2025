@@ -136,7 +136,7 @@ export default function DebugPage() {
                   <div className="text-center p-3 bg-blue-50 rounded-lg">
                     <div className="text-sm font-medium text-blue-800">Cookies</div>
                     <div className="text-xs text-blue-600 mt-1">
-                      {document.cookie.includes('erp-user') ? '✅ Set' : '❌ Not set'}
+                      {typeof window !== 'undefined' && document.cookie.includes('erp-user') ? '✅ Set' : '❌ Not set'}
                     </div>
                   </div>
                   <div className="text-center p-3 bg-purple-50 rounded-lg">
@@ -155,13 +155,13 @@ export default function DebugPage() {
                   <div className="text-center p-3 bg-green-50 rounded-lg">
                     <div className="text-sm font-medium text-green-800">localStorage</div>
                     <div className="text-xs text-green-600 mt-1">
-                      {localStorage.getItem('erp-user') ? '✅ Has data' : '❌ Empty'}
+                      {typeof window !== 'undefined' && localStorage.getItem('erp-user') ? '✅ Has data' : '❌ Empty'}
                     </div>
                   </div>
                   <div className="text-center p-3 bg-blue-50 rounded-lg">
                     <div className="text-sm font-medium text-blue-800">Cookies</div>
                     <div className="text-xs text-blue-600 mt-1">
-                      {document.cookie.includes('erp-user') ? '✅ Set' : '❌ Not set'}
+                      {typeof window !== 'undefined' && document.cookie.includes('erp-user') ? '✅ Set' : '❌ Not set'}
                     </div>
                   </div>
                   <div className="text-center p-3 bg-purple-50 rounded-lg">

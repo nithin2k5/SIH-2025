@@ -7,7 +7,7 @@ import Layout from '../../components/layout/Layout';
 import Button from '../../components/ui/Button';
 import Card, { CardContent, CardHeader } from '../../components/ui/Card';
 import Breadcrumb from '../../components/ui/Breadcrumb';
-import { mockApi } from '../../services/mockData';
+import { apiService } from '../../services/apiService';
 import {
   Users,
   Plus,
@@ -31,8 +31,118 @@ export default function AdmissionsPage() {
 
   const loadStudents = async () => {
     try {
-      const data = await mockApi.getStudents();
-      setStudents(data);
+      // Enhanced demo student data
+      const demoStudents = [
+        {
+          id: '1',
+          registrationNumber: 'CS2024001',
+          name: 'Sarah Johnson',
+          email: 'sarah.johnson@email.com',
+          phone: '+1-555-0123',
+          course: 'Computer Science',
+          department: 'Computer Science',
+          semester: 3,
+          admissionDate: '2024-01-15',
+          hostelAllocated: true,
+          roomNumber: 'A-101',
+          feesPaid: 25000,
+          totalFees: 50000,
+          status: 'active',
+          gpa: 3.8,
+          documents: ['transcript.pdf', 'id_proof.pdf'],
+          guardian: 'Michael Johnson',
+          address: '123 Oak Street, Springfield',
+          bloodGroup: 'O+',
+          emergencyContact: '+1-555-0199'
+        },
+        {
+          id: '2',
+          registrationNumber: 'ME2024002',
+          name: 'David Chen',
+          email: 'david.chen@email.com',
+          phone: '+1-555-0124',
+          course: 'Mechanical Engineering',
+          department: 'Engineering',
+          semester: 2,
+          admissionDate: '2024-02-01',
+          hostelAllocated: false,
+          feesPaid: 30000,
+          totalFees: 55000,
+          status: 'active',
+          gpa: 3.6,
+          documents: ['marksheet.pdf', 'certificate.pdf'],
+          guardian: 'Lisa Chen',
+          address: '456 Pine Avenue, Riverside',
+          bloodGroup: 'A+',
+          emergencyContact: '+1-555-0198'
+        },
+        {
+          id: '3',
+          registrationNumber: 'EE2024003',
+          name: 'Emily Rodriguez',
+          email: 'emily.rodriguez@email.com',
+          phone: '+1-555-0125',
+          course: 'Electrical Engineering',
+          department: 'Engineering',
+          semester: 4,
+          admissionDate: '2023-08-15',
+          hostelAllocated: true,
+          roomNumber: 'B-205',
+          feesPaid: 45000,
+          totalFees: 50000,
+          status: 'active',
+          gpa: 3.9,
+          documents: ['diploma.pdf', 'photo.jpg'],
+          guardian: 'Carlos Rodriguez',
+          address: '789 Maple Drive, Westfield',
+          bloodGroup: 'B+',
+          emergencyContact: '+1-555-0197'
+        },
+        {
+          id: '4',
+          registrationNumber: 'BT2024004',
+          name: 'Michael Thompson',
+          email: 'michael.thompson@email.com',
+          phone: '+1-555-0126',
+          course: 'Biotechnology',
+          department: 'Life Sciences',
+          semester: 1,
+          admissionDate: '2024-03-10',
+          hostelAllocated: true,
+          roomNumber: 'C-301',
+          feesPaid: 15000,
+          totalFees: 48000,
+          status: 'active',
+          gpa: 3.7,
+          documents: ['certificates.pdf', 'medical.pdf'],
+          guardian: 'Jennifer Thompson',
+          address: '321 Cedar Lane, Hillcrest',
+          bloodGroup: 'AB+',
+          emergencyContact: '+1-555-0196'
+        },
+        {
+          id: '5',
+          registrationNumber: 'CS2024005',
+          name: 'Priya Patel',
+          email: 'priya.patel@email.com',
+          phone: '+1-555-0127',
+          course: 'Computer Science',
+          department: 'Computer Science',
+          semester: 2,
+          admissionDate: '2024-01-20',
+          hostelAllocated: false,
+          feesPaid: 20000,
+          totalFees: 50000,
+          status: 'pending',
+          gpa: 3.5,
+          documents: ['transcript.pdf', 'recommendation.pdf'],
+          guardian: 'Raj Patel',
+          address: '654 Birch Street, Lakeside',
+          bloodGroup: 'O-',
+          emergencyContact: '+1-555-0195'
+        }
+      ];
+      setStudents(demoStudents);
     } catch (error) {
       console.error('Error loading students:', error);
     } finally {

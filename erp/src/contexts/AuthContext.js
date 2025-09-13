@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { USER_ROLES } from '../types';
+import { apiService } from '../services/apiService';
 
 const AuthContext = createContext();
 
@@ -9,7 +10,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Mock users for development
+  // Mock users for development/debug purposes only
   const mockUsers = [
     {
       id: '1',
@@ -78,27 +79,57 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     setLoading(true);
 
-    // Mock authentication - in real app, this would call an API
-    const foundUser = mockUsers.find(u => u.email === email);
-
-    if (foundUser && password === 'password') { // Simple mock password
-      setUser(foundUser);
-      localStorage.setItem('erp-user', JSON.stringify(foundUser));
-      // Also set cookie for middleware
-      document.cookie = `erp-user=${encodeURIComponent(JSON.stringify(foundUser))}; path=/; max-age=86400`; // 24 hours
+    try {
+      // First try API authentication
+      try {
+        const response = await apiService.login({ email, password });
+        const user = response.user;
+        const token = response.token;
+        
+        // Store user data and token
+        setUser(user);
+        localStorage.setItem('erp-user', JSON.stringify(user));
+        localStorage.setItem('erp-token', token);
+        
+        // Set cookie for consistency
+        document.cookie = `erp-user=${encodeURIComponent(JSON.stringify(user))}; path=/; max-age=86400`;
+        
+        setLoading(false);
+        return { success: true };
+      } catch (apiError) {
+        // Fallback to mock authentication for development
+        console.warn('API authentication failed, falling back to mock auth:', apiError.message);
+        
+        const foundUser = mockUsers.find(u => u.email === email);
+        if (foundUser && password === 'password') {
+          setUser(foundUser);
+          localStorage.setItem('erp-user', JSON.stringify(foundUser));
+          document.cookie = `erp-user=${encodeURIComponent(JSON.stringify(foundUser))}; path=/; max-age=86400`;
+          setLoading(false);
+          return { success: true };
+        }
+        
+        throw new Error('Invalid credentials');
+      }
+    } catch (error) {
       setLoading(false);
-      return { success: true };
+      return { success: false, error: error.message || 'Login failed' };
     }
-
-    setLoading(false);
-    return { success: false, error: 'Invalid credentials' };
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('erp-user');
-    // Clear cookie as well
-    document.cookie = 'erp-user=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+  const logout = async () => {
+    try {
+      await apiService.logout();
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+    } finally {
+      // Clear local state regardless of API call success
+      setUser(null);
+      localStorage.removeItem('erp-user');
+      localStorage.removeItem('erp-token');
+      // Clear cookie as well
+      document.cookie = 'erp-user=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    }
   };
 
   const hasRole = (roles) => {

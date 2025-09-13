@@ -113,3 +113,119 @@ export const ExamResult = {
   status: 'pass', // pass, fail, absent
   remarks: ''
 };
+
+// Course Type
+export const Course = {
+  id: '',
+  courseCode: '',
+  courseName: '',
+  department: '',
+  semester: 1,
+  credits: 3,
+  duration: '6 months', // Duration of the course
+  description: '',
+  prerequisites: [],
+  instructor: '',
+  maxStudents: 60,
+  enrolledStudents: 0,
+  status: 'active', // active, inactive, completed
+  startDate: new Date(),
+  endDate: new Date(),
+  syllabus: '',
+  createdAt: new Date()
+};
+
+// Course Registration Type
+export const CourseRegistration = {
+  id: '',
+  studentId: '',
+  courseId: '',
+  registrationDate: new Date(),
+  status: 'registered', // registered, dropped, completed, failed
+  grade: null,
+  attendance: 0,
+  marks: null
+};
+
+// Timetable Type
+export const Timetable = {
+  id: '',
+  courseId: '',
+  day: 'monday', // monday, tuesday, etc.
+  startTime: '09:00',
+  endTime: '10:00',
+  room: '',
+  instructor: '',
+  type: 'lecture', // lecture, lab, tutorial
+  semester: 1,
+  department: ''
+};
+
+// Payment Type
+export const Payment = {
+  id: '',
+  studentId: '',
+  feeId: '',
+  amount: 0,
+  paymentDate: new Date(),
+  paymentMethod: 'cash', // cash, card, online, bank_transfer
+  transactionId: '',
+  receiptNumber: '',
+  status: 'completed', // pending, completed, failed, refunded
+  remarks: '',
+  processedBy: ''
+};
+
+// Fee Structure Type
+export const FeeStructure = {
+  id: '',
+  course: '',
+  semester: 1,
+  tuitionFee: 0,
+  hostelFee: 0,
+  examFee: 0,
+  labFee: 0,
+  libraryFee: 0,
+  otherFees: 0,
+  totalFee: 0,
+  dueDate: new Date(),
+  academicYear: '2024-25',
+  isActive: true
+};
+
+// Notification Type
+export const Notification = {
+  id: '',
+  userId: '',
+  title: '',
+  message: '',
+  type: 'info', // info, success, warning, error
+  isRead: false,
+  createdAt: new Date(),
+  link: null
+};
+
+// Dashboard Stats Type
+export const DashboardStats = {
+  totalStudents: 0,
+  totalCourses: 0,
+  totalFees: 0,
+  feesCollected: 0,
+  pendingFees: 0,
+  hostelOccupancy: 0,
+  upcomingExams: 0,
+  recentAdmissions: 0,
+  activeUsers: 0
+};
+
+// Student Dashboard Stats Type
+export const StudentDashboardStats = {
+  enrolledCourses: 0,
+  completedCourses: 0,
+  totalFees: 0,
+  paidFees: 0,
+  pendingFees: 0,
+  upcomingExams: 0,
+  averageGrade: 0,
+  attendance: 0
+};

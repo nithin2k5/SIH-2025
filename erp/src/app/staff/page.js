@@ -1,157 +1,71 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useAuth } from '../../contexts/AuthContext';
+import { USER_ROLES } from '../../types';
 import Layout from '../../components/layout/Layout';
 import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
 import Card, { CardContent, CardHeader } from '../../components/ui/Card';
-import Breadcrumb from '../../components/ui/Breadcrumb';
-import { mockApi } from '../../services/mockData';
+import { apiService } from '../../services/apiService';
 import {
   Users,
   DollarSign,
   FileText,
+  TrendingUp,
+  Search,
+  Filter,
+  Eye,
+  Download,
   Calendar,
+  AlertCircle,
   CheckCircle,
   Clock,
-  TrendingUp,
-  UserPlus,
-  CreditCard,
-  FileCheck
+  BookOpen,
+  Building,
+  Award,
+  User,
+  Phone,
+  Mail,
+  MapPin,
+  GraduationCap
 } from 'lucide-react';
 
 export default function StaffPage() {
   const { user } = useAuth();
-  const [stats, setStats] = useState(null);
-  const [tasks, setTasks] = useState([]);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [students, setStudents] = useState([]);
+  const [fees, setFees] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterDepartment, setFilterDepartment] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
 
   useEffect(() => {
-    loadStaffData();
+    fetchData();
   }, []);
 
-  const loadStaffData = async () => {
+  const fetchData = async () => {
     try {
-      const statsData = await mockApi.getDashboardStats();
+      const [studentsData, feesData, paymentsData, examsData] = await Promise.all([
+        apiService.getStudents(),
+        apiService.getFees(),
+        apiService.getPayments(),
+        apiService.getExams()
+      ]);
 
-      // Mock staff-specific tasks
-      const staffTasks = [
-        {
-          id: 1,
-          type: 'admission',
-          title: 'Review Admission Application',
-          description: 'Review application for Sarah Johnson - Computer Science',
-          priority: 'high',
-          dueDate: 'Today',
-          status: 'pending',
-          icon: UserPlus,
-          color: 'text-red-600'
-        },
-        {
-          id: 2,
-          type: 'fees',
-          title: 'Process Fee Payment',
-          description: 'Verify payment receipt for Mike Johnson - $2,500',
-          priority: 'medium',
-          dueDate: 'Tomorrow',
-          status: 'in_progress',
-          icon: CreditCard,
-          color: 'text-blue-600'
-        },
-        {
-          id: 3,
-          type: 'exam',
-          title: 'Upload Exam Results',
-          description: 'Upload Thermodynamics exam results for Semester 4',
-          priority: 'high',
-          dueDate: 'This Week',
-          status: 'pending',
-          icon: FileCheck,
-          color: 'text-purple-600'
-        },
-        {
-          id: 4,
-          type: 'report',
-          title: 'Generate Monthly Report',
-          description: 'Prepare admissions report for October 2024',
-          priority: 'low',
-          dueDate: 'Next Week',
-          status: 'pending',
-          icon: FileText,
-          color: 'text-green-600'
-        }
-      ];
-
-      setStats(statsData);
-      setTasks(staffTasks);
+      setStudents(studentsData.students || []);
+      setFees(feesData);
+      setPayments(paymentsData.payments || []);
+      setExams(examsData.exams || []);
     } catch (error) {
-      console.error('Error loading staff data:', error);
+      console.error('Error fetching staff panel data:', error);
     } finally {
       setLoading(false);
     }
   };
-
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'high':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'low':
-        return 'bg-green-100 text-green-800 border-green-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'in_progress':
-        return 'bg-blue-100 text-blue-800';
-      case 'pending':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const staffActions = [
-    {
-      title: 'New Admission',
-      description: 'Process new student admissions',
-      icon: UserPlus,
-      href: '/admissions/new',
-      color: 'bg-blue-500',
-      count: '3 pending'
-    },
-    {
-      title: 'Fee Collection',
-      description: 'Manage student fee payments',
-      icon: DollarSign,
-      href: '/fees',
-      color: 'bg-green-500',
-      count: '$12,500 due'
-    },
-    {
-      title: 'Exam Management',
-      description: 'Upload and manage exam results',
-      icon: FileText,
-      href: '/exams',
-      color: 'bg-purple-500',
-      count: '2 uploads pending'
-    },
-    {
-      title: 'Reports',
-      description: 'Generate student reports',
-      icon: TrendingUp,
-      href: '/staff/reports',
-      color: 'bg-orange-500',
-      count: 'Monthly due'
-    }
-  ];
 
   if (loading) {
     return (
@@ -163,260 +77,500 @@ export default function StaffPage() {
     );
   }
 
+  // Calculate statistics
+  const totalStudents = students.length;
+  const activeStudents = students.filter(s => s.status === 'active').length;
+  const totalFeesCollected = payments.reduce((sum, payment) => sum + payment.amount, 0);
+  const pendingFees = fees.filter(fee => fee.status === 'pending').reduce((sum, fee) => sum + fee.amount, 0);
+  const upcomingExams = exams.filter(exam => new Date(exam.examDate) >= new Date()).length;
+  const completedExams = exams.filter(exam => exam.status === 'completed').length;
+  
+  const departments = [...new Set(students.map(s => s.department))];
+  
+  const filteredStudents = students.filter(student => {
+    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         student.registrationNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         student.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesDepartment = filterDepartment === 'all' || student.department === filterDepartment;
+    const matchesStatus = filterStatus === 'all' || student.status === filterStatus;
+    return matchesSearch && matchesDepartment && matchesStatus;
+  });
+
+  const recentPayments = payments.slice(0, 5);
+  const studentsWithPendingFees = new Set(fees.filter(fee => fee.status === 'pending').map(fee => fee.studentId)).size;
+
   return (
     <Layout>
-      <Breadcrumb items={[{ label: 'Staff Dashboard' }]} />
-
       {/* Header */}
-      <div className="mb-8">
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Staff Dashboard</h1>
-              <p className="text-gray-600 mt-2">
-                Welcome back, {user?.name}. Here's your daily overview.
-              </p>
-            </div>
-            <Button>
-              <Calendar className="mr-2 h-4 w-4" />
-              View Schedule
-            </Button>
+      <div className="mb-8 animate-slide-up">
+        <div className="flex items-center space-x-4 mb-4">
+          <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+            <Users className="h-7 w-7 text-white" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold gradient-text">Staff Dashboard</h1>
+            <p className="text-slate-600 text-lg mt-1">
+              Overview of students, fees, payments, and exam data
+            </p>
           </div>
         </div>
+        <div className="h-1 w-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full"></div>
+      </div>
 
-        {/* Staff Overview Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <Users className="h-6 w-6 text-blue-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Students Managed</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats?.totalStudents || 0}</p>
-                  <p className="text-xs text-green-600 mt-1">Active enrollments</p>
-                </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <Card variant="gradient" className="animate-slide-up">
+          <CardContent padding="lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-600 mb-1">Total Students</p>
+                <p className="text-3xl font-bold text-blue-600">{totalStudents}</p>
+                <p className="text-xs text-slate-500 mt-1">{activeStudents} active</p>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <DollarSign className="h-6 w-6 text-green-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Fees Collected</p>
-                  <p className="text-2xl font-bold text-gray-900">${stats?.totalFeesCollected?.toLocaleString() || 0}</p>
-                  <p className="text-xs text-green-600 mt-1">This month</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-purple-100 rounded-lg">
-                  <FileText className="h-6 w-6 text-purple-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Pending Tasks</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {tasks.filter(t => t.status === 'pending').length}
-                  </p>
-                  <p className="text-xs text-orange-600 mt-1">Require attention</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-orange-100 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-orange-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Completed Today</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {tasks.filter(t => t.status === 'completed').length}
-                  </p>
-                  <p className="text-xs text-blue-600 mt-1">Tasks done</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {staffActions.map((action, index) => (
-              <Link key={index} href={action.href} className="block">
-                <Card className="hover:shadow-lg hover:border-green-200 transition-all duration-200 cursor-pointer border-2 border-transparent hover:border-green-200">
-                  <CardContent className="p-6">
-                    <div className="flex items-start space-x-4">
-                      <div className="flex-shrink-0">
-                        <div className={`w-12 h-12 ${action.color} rounded-xl flex items-center justify-center shadow-sm`}>
-                          <action.icon className="h-6 w-6 text-white" />
-                        </div>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900">{action.title}</h3>
-                        <p className="text-sm text-gray-600 mt-1">{action.description}</p>
-                        <div className="flex justify-between items-center mt-3">
-                          <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                            {action.count}
-                          </span>
-                          <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                            <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* Tasks & Workflow */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Pending Tasks */}
-          <Card>
-            <CardHeader>
-              <h3 className="text-lg font-semibold text-gray-900">Pending Tasks</h3>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {tasks.filter(task => task.status !== 'completed').map(task => (
-                  <div key={task.id} className="flex items-start space-x-4 p-4 border rounded-lg hover:bg-gray-50">
-                    <div className="flex-shrink-0">
-                      <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                        <task.icon className={`h-5 w-5 ${task.color}`} />
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-gray-900">{task.title}</p>
-                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full border ${getPriorityColor(task.priority)}`}>
-                          {task.priority}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1">{task.description}</p>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(task.status)}`}>
-                          {task.status.replace('_', ' ')}
-                        </span>
-                        <span className="text-xs text-gray-500">Due: {task.dueDate}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Recent Activity */}
-          <Card>
-            <CardHeader>
-              <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">Admission Processed</p>
-                    <p className="text-sm text-gray-600">John Doe's admission application approved</p>
-                    <p className="text-xs text-gray-500 mt-1">2 hours ago</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <DollarSign className="h-4 w-4 text-blue-600" />
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">Fee Payment Received</p>
-                    <p className="text-sm text-gray-600">Payment of $1,500 processed for Jane Smith</p>
-                    <p className="text-xs text-gray-500 mt-1">4 hours ago</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                      <FileText className="h-4 w-4 text-purple-600" />
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">Exam Results Uploaded</p>
-                    <p className="text-sm text-gray-600">Mathematics exam results for Semester 2 uploaded</p>
-                    <p className="text-xs text-gray-500 mt-1">1 day ago</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                      <Calendar className="h-4 w-4 text-orange-600" />
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">Schedule Updated</p>
-                    <p className="text-sm text-gray-600">Counseling session scheduled for tomorrow</p>
-                    <p className="text-xs text-gray-500 mt-1">2 days ago</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Performance Metrics */}
-        <Card className="mt-6">
-          <CardHeader>
-            <h3 className="text-lg font-semibold text-gray-900">This Month's Performance</h3>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600 mb-2">24</div>
-                <p className="text-sm text-gray-600">Admissions Processed</p>
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                  <div className="bg-blue-600 h-2 rounded-full" style={{width: '80%'}}></div>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-green-600 mb-2">$28,500</div>
-                <p className="text-sm text-gray-600">Fees Collected</p>
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                  <div className="bg-green-600 h-2 rounded-full" style={{width: '65%'}}></div>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600 mb-2">96%</div>
-                <p className="text-sm text-gray-600">Task Completion Rate</p>
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                  <div className="bg-purple-600 h-2 rounded-full" style={{width: '96%'}}></div>
-                </div>
+              <div className="p-4 bg-blue-500 rounded-2xl shadow-lg">
+                <Users className="h-7 w-7 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
+
+        <Card variant="gradient" className="animate-slide-up" style={{animationDelay: '100ms'}}>
+          <CardContent padding="lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-600 mb-1">Fees Collected</p>
+                <p className="text-3xl font-bold text-green-600">₹{totalFeesCollected.toLocaleString()}</p>
+                <p className="text-xs text-slate-500 mt-1">{payments.length} payments</p>
+              </div>
+              <div className="p-4 bg-green-500 rounded-2xl shadow-lg">
+                <DollarSign className="h-7 w-7 text-white" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card variant="gradient" className="animate-slide-up" style={{animationDelay: '200ms'}}>
+          <CardContent padding="lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-600 mb-1">Pending Fees</p>
+                <p className="text-3xl font-bold text-red-600">₹{pendingFees.toLocaleString()}</p>
+                <p className="text-xs text-slate-500 mt-1">{studentsWithPendingFees} students</p>
+              </div>
+              <div className="p-4 bg-red-500 rounded-2xl shadow-lg">
+                <AlertCircle className="h-7 w-7 text-white" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card variant="gradient" className="animate-slide-up" style={{animationDelay: '300ms'}}>
+          <CardContent padding="lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-600 mb-1">Upcoming Exams</p>
+                <p className="text-3xl font-bold text-orange-600">{upcomingExams}</p>
+                <p className="text-xs text-slate-500 mt-1">{completedExams} completed</p>
+              </div>
+              <div className="p-4 bg-orange-500 rounded-2xl shadow-lg">
+                <FileText className="h-7 w-7 text-white" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tabs */}
+      <div className="mb-8">
+        <div className="flex space-x-1 bg-slate-100 p-1 rounded-xl w-fit">
+          {[
+            { id: 'overview', label: 'Overview', icon: TrendingUp },
+            { id: 'students', label: 'Students', icon: Users },
+            { id: 'payments', label: 'Payments', icon: DollarSign },
+            { id: 'exams', label: 'Exams', icon: FileText }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                activeTab === tab.id
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <tab.icon className="h-4 w-4" />
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Overview Tab */}
+      {activeTab === 'overview' && (
+        <div className="space-y-8">
+          {/* Quick Stats Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Department Breakdown */}
+            <Card variant="elevated">
+              <CardHeader variant="gradient">
+                <h3 className="text-xl font-bold text-slate-900 flex items-center">
+                  <BookOpen className="h-6 w-6 mr-3" />
+                  Students by Department
+                </h3>
+              </CardHeader>
+              <CardContent padding="lg">
+                <div className="space-y-4">
+                  {departments.map((dept, index) => {
+                    const deptStudents = students.filter(s => s.department === dept).length;
+                    const percentage = (deptStudents / totalStudents) * 100;
+                    return (
+                      <div key={dept} className="animate-slide-up" style={{animationDelay: `${index * 100}ms`}}>
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium text-slate-700">{dept}</span>
+                          <span className="text-sm text-slate-600">{deptStudents} students</span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-2">
+                          <div 
+                            className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-500" 
+                            style={{ width: `${percentage}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent Activity */}
+            <Card variant="elevated">
+              <CardHeader variant="gradient">
+                <h3 className="text-xl font-bold text-slate-900 flex items-center">
+                  <Clock className="h-6 w-6 mr-3" />
+                  Recent Payments
+                </h3>
+              </CardHeader>
+              <CardContent padding="lg">
+                <div className="space-y-4">
+                  {recentPayments.map((payment, index) => (
+                    <div key={payment.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg animate-slide-up" style={{animationDelay: `${index * 100}ms`}}>
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                          <DollarSign className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-900">{payment.studentName}</p>
+                          <p className="text-sm text-slate-600">₹{payment.amount.toLocaleString()}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-slate-600">{new Date(payment.paymentDate).toLocaleDateString()}</p>
+                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                          {payment.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Monthly Trends */}
+          <Card variant="elevated">
+            <CardHeader variant="gradient">
+              <h3 className="text-xl font-bold text-slate-900 flex items-center">
+                <TrendingUp className="h-6 w-6 mr-3" />
+                Monthly Overview
+              </h3>
+            </CardHeader>
+            <CardContent padding="lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Users className="h-6 w-6 text-white" />
+                  </div>
+                  <p className="text-2xl font-bold text-blue-600">23</p>
+                  <p className="text-sm text-slate-600">New Admissions</p>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <DollarSign className="h-6 w-6 text-white" />
+                  </div>
+                  <p className="text-2xl font-bold text-green-600">₹2.4L</p>
+                  <p className="text-sm text-slate-600">Fees Collected</p>
+                </div>
+                <div className="text-center p-4 bg-orange-50 rounded-lg">
+                  <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <FileText className="h-6 w-6 text-white" />
+                  </div>
+                  <p className="text-2xl font-bold text-orange-600">8</p>
+                  <p className="text-sm text-slate-600">Exams Conducted</p>
+                </div>
+                <div className="text-center p-4 bg-purple-50 rounded-lg">
+                  <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Award className="h-6 w-6 text-white" />
+                  </div>
+                  <p className="text-2xl font-bold text-purple-600">87%</p>
+                  <p className="text-sm text-slate-600">Pass Rate</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Students Tab */}
+      {activeTab === 'students' && (
+        <div className="space-y-6">
+          {/* Filters */}
+          <Card variant="outline">
+            <CardContent padding="lg">
+              <div className="flex flex-col lg:flex-row gap-4">
+                <div className="flex-1">
+                  <Input
+                    placeholder="Search students..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    icon={Search}
+                  />
+                </div>
+                <div className="flex gap-4">
+                  <select
+                    value={filterDepartment}
+                    onChange={(e) => setFilterDepartment(e.target.value)}
+                    className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">All Departments</option>
+                    {departments.map(dept => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="graduated">Graduated</option>
+                  </select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Students Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {filteredStudents.map((student, index) => (
+              <Card key={student.id} variant="elevated" className="animate-slide-up" style={{animationDelay: `${index * 50}ms`}}>
+                <CardHeader variant="gradient" className="pb-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                        <span className="text-white font-bold text-sm">
+                          {student.name.split(' ').map(n => n[0]).join('')}
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-900">{student.name}</h3>
+                        <p className="text-sm text-slate-600">{student.registrationNumber}</p>
+                      </div>
+                    </div>
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                      student.status === 'active' ? 'bg-green-100 text-green-800' :
+                      student.status === 'inactive' ? 'bg-red-100 text-red-800' :
+                      'bg-blue-100 text-blue-800'
+                    }`}>
+                      {student.status}
+                    </span>
+                  </div>
+                </CardHeader>
+                
+                <CardContent padding="lg">
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2 text-sm">
+                      <BookOpen className="h-4 w-4 text-slate-500" />
+                      <span className="text-slate-600">{student.course}</span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-sm">
+                      <GraduationCap className="h-4 w-4 text-slate-500" />
+                      <span className="text-slate-600">Semester {student.semester}</span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-sm">
+                      <Mail className="h-4 w-4 text-slate-500" />
+                      <span className="text-slate-600">{student.email}</span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-sm">
+                      <Phone className="h-4 w-4 text-slate-500" />
+                      <span className="text-slate-600">{student.phone}</span>
+                    </div>
+                    {student.hostelAllocated && (
+                      <div className="flex items-center space-x-2 text-sm">
+                        <Building className="h-4 w-4 text-slate-500" />
+                        <span className="text-slate-600">Room {student.roomNumber}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-100 mt-4">
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Profile
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        <Mail className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {filteredStudents.length === 0 && (
+            <Card variant="outline" className="text-center py-12">
+              <CardContent>
+                <Users className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-slate-900 mb-2">No students found</h3>
+                <p className="text-slate-600">Try adjusting your search or filter criteria.</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Payments Tab */}
+      {activeTab === 'payments' && (
+        <div className="space-y-6">
+          <Card variant="elevated">
+            <CardHeader variant="gradient">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-slate-900">Payment Records</h3>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent padding="none">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Student</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Amount</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Method</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Date</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Status</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Receipt</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {payments.slice(0, 20).map((payment) => (
+                      <tr key={payment.id} className="hover:bg-slate-50">
+                        <td className="px-6 py-4">
+                          <div>
+                            <div className="font-semibold text-slate-900">{payment.studentName}</div>
+                            <div className="text-sm text-slate-600">ID: {payment.studentId}</div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 font-semibold text-green-600">
+                          ₹{payment.amount.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 capitalize">{payment.paymentMethod}</td>
+                        <td className="px-6 py-4">{new Date(payment.paymentDate).toLocaleDateString()}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                            payment.status === 'completed' ? 'bg-green-100 text-green-800' :
+                            payment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {payment.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 font-mono text-sm">{payment.receiptNumber}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Exams Tab */}
+      {activeTab === 'exams' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Upcoming Exams */}
+            <Card variant="elevated">
+              <CardHeader variant="gradient">
+                <h3 className="text-xl font-bold text-slate-900 flex items-center">
+                  <Calendar className="h-6 w-6 mr-3" />
+                  Upcoming Exams
+                </h3>
+              </CardHeader>
+              <CardContent padding="lg">
+                <div className="space-y-4">
+                  {exams.filter(exam => new Date(exam.examDate) >= new Date()).slice(0, 5).map((exam, index) => (
+                    <div key={exam.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg animate-slide-up" style={{animationDelay: `${index * 100}ms`}}>
+                      <div>
+                        <h4 className="font-semibold text-slate-900">{exam.subject}</h4>
+                        <p className="text-sm text-slate-600">{exam.course} • {new Date(exam.examDate).toLocaleDateString()}</p>
+                        <p className="text-sm text-slate-500">{exam.startTime} - {exam.endTime} • {exam.room}</p>
+                      </div>
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
+                        {exam.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Exam Statistics */}
+            <Card variant="elevated">
+              <CardHeader variant="gradient">
+                <h3 className="text-xl font-bold text-slate-900 flex items-center">
+                  <Award className="h-6 w-6 mr-3" />
+                  Exam Statistics
+                </h3>
+              </CardHeader>
+              <CardContent padding="lg">
+                <div className="space-y-6">
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <CheckCircle className="h-6 w-6 text-white" />
+                    </div>
+                    <p className="text-2xl font-bold text-green-600">{completedExams}</p>
+                    <p className="text-sm text-slate-600">Completed Exams</p>
+                  </div>
+                  
+                  <div className="text-center p-4 bg-orange-50 rounded-lg">
+                    <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Clock className="h-6 w-6 text-white" />
+                    </div>
+                    <p className="text-2xl font-bold text-orange-600">{upcomingExams}</p>
+                    <p className="text-sm text-slate-600">Upcoming Exams</p>
+                  </div>
+
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <TrendingUp className="h-6 w-6 text-white" />
+                    </div>
+                    <p className="text-2xl font-bold text-blue-600">87%</p>
+                    <p className="text-sm text-slate-600">Average Pass Rate</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }
