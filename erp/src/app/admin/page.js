@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { USER_ROLES } from '../../types';
 import Layout from '../../components/layout/Layout';
@@ -28,6 +28,7 @@ import {
   Trash2,
   Plus,
   Download,
+  GraduationCap,
   Upload,
   Server,
   Zap,
@@ -46,104 +47,232 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
+  const [students, setStudents] = useState([]);
   const [systemHealth, setSystemHealth] = useState({});
   const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [showUserModal, setShowUserModal] = useState(false);
+  const [showStudentModal, setShowStudentModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
-      // In a real app, these would be separate API endpoints
-      const [statsData, studentsData, paymentsData, examsData] = await Promise.all([
+      // Fetch all required data from real APIs
+      const [statsData, usersData, studentsData, systemHealthData, recentActivityData] = await Promise.all([
         apiService.getDashboardStats(),
+        apiService.getUsers(),
         apiService.getStudents(),
-        apiService.getPayments(),
-        apiService.getExams()
+        apiService.getSystemHealth(),
+        apiService.getRecentActivity()
       ]);
 
       setStats(statsData);
 
-      // Mock users data (in real app, this would be from an admin API)
-      const mockUsers = [
-        { id: '1', name: 'Admin User', email: 'admin@college.edu', role: USER_ROLES.ADMIN, status: 'active', lastLogin: new Date() },
-        { id: '2', name: 'John Staff', email: 'john.staff@college.edu', role: USER_ROLES.STAFF, status: 'active', lastLogin: new Date() },
-        { id: '3', name: 'Hostel Warden', email: 'warden@college.edu', role: USER_ROLES.HOSTEL_WARDEN, status: 'active', lastLogin: new Date() },
-        ...studentsData.students.slice(0, 10).map(student => ({
-          id: student.id,
-          name: student.name,
+      // Map users data to match frontend expectations
+      if (usersData && usersData.users) {
+        const mappedUsers = usersData.users.map(user => ({
+          id: user.user_id,
+          name: user.display_name || user.username,
+          email: user.email,
+          role: user.role,
+          status: user.active ? 'active' : 'inactive',
+          lastLogin: user.last_login ? new Date(user.last_login) : null,
+          department: user.notes || 'N/A'
+        }));
+        setUsers(mappedUsers);
+      }
+
+      // Set system health data
+      if (systemHealthData && systemHealthData.health) {
+        setSystemHealth(systemHealthData.health);
+      }
+
+      // Map students data to match frontend expectations
+      if (studentsData && studentsData.students) {
+        const mappedStudents = studentsData.students.map(student => ({
+          id: student.student_id,
+          studentId: student.student_id,
+          name: `${student.first_name} ${student.last_name}`,
           email: student.email,
-          role: USER_ROLES.STUDENT,
-          status: student.status,
-          lastLogin: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000)
-        }))
-      ];
-      setUsers(mockUsers);
+          phone: student.phone,
+          programmeId: student.programme_id,
+          programmeName: student.programme_name,
+          enrollmentStatus: student.enrollment_status,
+          yearOfStudy: student.year_of_study,
+          admissionDate: student.admission_date,
+          photoDriveFileId: student.photo_drive_file_id,
+          hostelAllocId: student.hostel_alloc_id,
+          libraryCardId: student.library_card_id,
+          createdAt: student.created_at,
+          updatedAt: student.updated_at
+        }));
+        setStudents(mappedStudents);
+      }
 
-      // Mock system health
-      setSystemHealth({
-        serverStatus: 'healthy',
-        databaseStatus: 'healthy',
-        apiResponseTime: '120ms',
-        uptime: '99.9%',
-        activeUsers: 156,
-        memoryUsage: 68,
-        cpuUsage: 45
-      });
-
-      // Mock recent activity
-      setRecentActivity([
-        { id: '1', type: 'user', action: 'New student registered', user: 'Jane Doe', timestamp: new Date(Date.now() - 1000 * 60 * 30), icon: UserPlus, color: 'bg-green-500' },
-        { id: '2', type: 'payment', action: 'Payment received', user: 'John Smith', timestamp: new Date(Date.now() - 1000 * 60 * 60), icon: DollarSign, color: 'bg-blue-500' },
-        { id: '3', type: 'exam', action: 'Exam scheduled', user: 'Admin User', timestamp: new Date(Date.now() - 1000 * 60 * 120), icon: FileText, color: 'bg-orange-500' },
-        { id: '4', type: 'system', action: 'Database backup completed', user: 'System', timestamp: new Date(Date.now() - 1000 * 60 * 180), icon: Database, color: 'bg-purple-500' },
-        { id: '5', type: 'user', action: 'Staff user login', user: 'Sarah Wilson', timestamp: new Date(Date.now() - 1000 * 60 * 240), icon: Users, color: 'bg-indigo-500' }
-      ]);
+      // Set recent activity data
+      if (recentActivityData && recentActivityData.activities) {
+        const mappedActivity = recentActivityData.activities.map(activity => ({
+          id: activity.id,
+          type: activity.type,
+          action: activity.description,
+          user: activity.type === 'system' ? 'System' : 'User',
+          timestamp: new Date(activity.timestamp),
+          icon: getActivityIcon(activity.type),
+          color: getActivityColor(activity.type)
+        }));
+        setRecentActivity(mappedActivity);
+      }
 
     } catch (error) {
       console.error('Error fetching admin data:', error);
+      // Set fallback data for development
+      setUsers([]);
+      setStudents([]);
+      setSystemHealth({
+        serverStatus: 'unknown',
+        databaseStatus: 'unknown',
+        apiResponseTime: 'N/A',
+        uptime: 'N/A',
+        activeUsers: 0,
+        memoryUsage: 0,
+        cpuUsage: 0
+      });
+      setRecentActivity([]);
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Helper functions for activity icons and colors
+  const getActivityIcon = (type) => {
+    const iconMap = {
+      'user': UserPlus,
+      'payment': DollarSign,
+      'exam': FileText,
+      'system': Database,
+      'course': BookOpen,
+      'hostel': Building,
+      'admission': Users
+    };
+    return iconMap[type] || Database;
+  };
+
+  const getActivityColor = (type) => {
+    const colorMap = {
+      'user': 'bg-green-500',
+      'payment': 'bg-blue-500',
+      'exam': 'bg-orange-500',
+      'system': 'bg-purple-500',
+      'course': 'bg-indigo-500',
+      'hostel': 'bg-cyan-500',
+      'admission': 'bg-emerald-500'
+    };
+    return colorMap[type] || 'bg-gray-500';
   };
 
   const handleCreateUser = async (userData) => {
     try {
-      // In real app: await apiService.createUser(userData);
-      console.log('Creating user:', userData);
+      await apiService.createUser(userData);
       fetchData();
       setShowUserModal(false);
     } catch (error) {
       console.error('Error creating user:', error);
+      alert('Failed to create user. Please try again.');
     }
   };
 
   const handleUpdateUser = async (userData) => {
     try {
-      // In real app: await apiService.updateUser(selectedUser.id, userData);
-      console.log('Updating user:', userData);
+      await apiService.updateUser(selectedUser.id, userData);
       fetchData();
       setShowUserModal(false);
       setSelectedUser(null);
     } catch (error) {
       console.error('Error updating user:', error);
+      alert('Failed to update user. Please try again.');
     }
   };
 
   const handleDeleteUser = async (userId) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
-        // In real app: await apiService.deleteUser(userId);
-        console.log('Deleting user:', userId);
+        await apiService.deleteUser(userId);
         fetchData();
       } catch (error) {
         console.error('Error deleting user:', error);
+        alert('Failed to delete user. Please try again.');
+      }
+    }
+  };
+
+  // Student CRUD functions
+  const handleCreateStudent = async (studentData) => {
+    try {
+      // Map frontend data to API format (matching Students model)
+      const apiData = {
+        student_id: studentData.studentId,
+        first_name: studentData.firstName,
+        last_name: studentData.lastName,
+        email: studentData.email,
+        phone: studentData.phone || '',
+        programme_id: studentData.programmeId || '',
+        programme_name: studentData.programmeName || '',
+        enrollment_status: studentData.enrollmentStatus || 'active',
+        year_of_study: parseInt(studentData.yearOfStudy) || 1,
+        admission_date: studentData.admissionDate || new Date().toISOString(),
+        photo_drive_file_id: studentData.photoDriveFileId || ''
+      };
+
+      await apiService.createStudent(apiData);
+      fetchData();
+      setShowStudentModal(false);
+    } catch (error) {
+      console.error('Error creating student:', error);
+      alert('Failed to create student. Please try again.');
+    }
+  };
+
+  const handleUpdateStudent = async (studentData) => {
+    try {
+      // Map frontend data to API format (matching Students model)
+      const apiData = {
+        first_name: studentData.firstName,
+        last_name: studentData.lastName,
+        email: studentData.email,
+        phone: studentData.phone || '',
+        programme_id: studentData.programmeId || '',
+        programme_name: studentData.programmeName || '',
+        enrollment_status: studentData.enrollmentStatus || 'active',
+        year_of_study: parseInt(studentData.yearOfStudy) || 1,
+        photo_drive_file_id: studentData.photoDriveFileId || ''
+      };
+
+      await apiService.updateStudent(selectedStudent.id, apiData);
+      fetchData();
+      setShowStudentModal(false);
+      setSelectedStudent(null);
+    } catch (error) {
+      console.error('Error updating student:', error);
+      alert('Failed to update student. Please try again.');
+    }
+  };
+
+  const handleDeleteStudent = async (studentId) => {
+    if (window.confirm('Are you sure you want to delete this student?')) {
+      try {
+        await apiService.deleteStudent(studentId);
+        fetchData();
+      } catch (error) {
+        console.error('Error deleting student:', error);
+        alert('Failed to delete student. Please try again.');
       }
     }
   };
@@ -264,6 +393,7 @@ export default function AdminPage() {
           {[
             { id: 'overview', label: 'Overview', icon: TrendingUp },
             { id: 'users', label: 'Users', icon: Users },
+            { id: 'students', label: 'Students', icon: GraduationCap },
             { id: 'system', label: 'System', icon: Server },
             { id: 'analytics', label: 'Analytics', icon: BarChart3 }
           ].map((tab) => (
@@ -530,6 +660,128 @@ export default function AdminPage() {
         </div>
       )}
 
+      {/* Students Tab */}
+      {activeTab === 'students' && (
+        <div className="space-y-6">
+          {/* Filters */}
+          <Card variant="outline">
+            <CardContent padding="lg">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <Input
+                    placeholder="Search students..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    icon={Search}
+                  />
+                </div>
+                <div className="w-full sm:w-48">
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Students Table */}
+          <Card variant="elevated">
+            <CardHeader variant="gradient">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-slate-900">Student Management</h3>
+                <Button variant="primary" size="sm" onClick={() => setShowStudentModal(true)}>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Add Student
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent padding="none">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Student</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Student ID</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Programme</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Status</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {students.filter(student =>
+                      (searchTerm === '' ||
+                       (student.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                       (student.studentId || '').toLowerCase().includes(searchTerm.toLowerCase())) &&
+                      (filterStatus === 'all' || (student.enrollmentStatus === filterStatus))
+                    ).map((student) => (
+                      <tr key={student.id} className="hover:bg-slate-50">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-teal-600 rounded-full flex items-center justify-center">
+                              <span className="text-white font-bold text-sm">
+                                {(student.name || 'N A').split(' ').map(n => n[0]).join('')}
+                              </span>
+                            </div>
+                            <div>
+                              <div className="font-semibold text-slate-900">{student.name || 'Unknown Student'}</div>
+                              <div className="text-sm text-slate-600">{student.email || 'N/A'}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm font-mono text-slate-600">
+                          {student.studentId || 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-600">
+                          {student.programmeName || 'N/A'}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                            (student.enrollmentStatus || 'active') === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {student.enrollmentStatus || 'active'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex space-x-2">
+                            <Button variant="ghost" size="sm">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedStudent(student);
+                                setShowStudentModal(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-800"
+                              onClick={() => handleDeleteStudent(student.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* System Tab */}
       {activeTab === 'system' && (
         <div className="space-y-6">
@@ -748,6 +1000,119 @@ export default function AdminPage() {
               </div>
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {/* Student Modal */}
+      {showStudentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <Card>
+              <CardHeader variant="gradient">
+                <h3 className="text-xl font-bold text-slate-900">
+                  {selectedStudent ? 'Edit Student' : 'Add New Student'}
+                </h3>
+              </CardHeader>
+              <CardContent padding="lg">
+                <div className="space-y-4">
+                  <Input
+                    label="Student ID"
+                    placeholder="Enter student ID"
+                    disabled={!!selectedStudent}
+                    onChange={(e) => setSelectedStudent(prev => ({ ...prev, studentId: e.target.value }))}
+                    defaultValue={selectedStudent?.studentId || ''}
+                  />
+                  <Input
+                    label="First Name"
+                    placeholder="Enter first name"
+                    onChange={(e) => setSelectedStudent(prev => ({ ...prev, firstName: e.target.value }))}
+                    defaultValue={selectedStudent?.firstName || ''}
+                  />
+                  <Input
+                    label="Last Name"
+                    placeholder="Enter last name"
+                    onChange={(e) => setSelectedStudent(prev => ({ ...prev, lastName: e.target.value }))}
+                    defaultValue={selectedStudent?.lastName || ''}
+                  />
+                  <Input
+                    label="Email"
+                    type="email"
+                    placeholder="Enter email address"
+                    onChange={(e) => setSelectedStudent(prev => ({ ...prev, email: e.target.value }))}
+                    defaultValue={selectedStudent?.email || ''}
+                  />
+                  <Input
+                    label="Phone"
+                    placeholder="Enter phone number"
+                    onChange={(e) => setSelectedStudent(prev => ({ ...prev, phone: e.target.value }))}
+                    defaultValue={selectedStudent?.phone || ''}
+                  />
+                  <Input
+                    label="Programme ID"
+                    placeholder="Enter programme ID"
+                    onChange={(e) => setSelectedStudent(prev => ({ ...prev, programmeId: e.target.value }))}
+                    defaultValue={selectedStudent?.programmeId || ''}
+                  />
+                  <Input
+                    label="Programme Name"
+                    placeholder="Enter programme name"
+                    onChange={(e) => setSelectedStudent(prev => ({ ...prev, programmeName: e.target.value }))}
+                    defaultValue={selectedStudent?.programmeName || ''}
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Year of Study</label>
+                      <select
+                        className="w-full px-3 py-2 border rounded-md"
+                        onChange={(e) => setSelectedStudent(prev => ({ ...prev, yearOfStudy: e.target.value }))}
+                        defaultValue={selectedStudent?.yearOfStudy || '1'}
+                      >
+                        {[1,2,3,4,5,6,7,8].map(year => (
+                          <option key={year} value={year}>{year}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                      <select
+                        className="w-full px-3 py-2 border rounded-md"
+                        onChange={(e) => setSelectedStudent(prev => ({ ...prev, enrollmentStatus: e.target.value }))}
+                        defaultValue={selectedStudent?.enrollmentStatus || 'active'}
+                      >
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex space-x-3 pt-4">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setShowStudentModal(false);
+                      setSelectedStudent(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    className="flex-1"
+                    onClick={() => {
+                      if (selectedStudent && selectedStudent.id) {
+                        handleUpdateStudent(selectedStudent);
+                      } else {
+                        handleCreateStudent(selectedStudent || {});
+                      }
+                    }}
+                  >
+                    {selectedStudent?.id ? 'Update Student' : 'Create Student'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
     </Layout>

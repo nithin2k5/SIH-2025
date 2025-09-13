@@ -1,7 +1,7 @@
 // API Proxy to handle CORS issues with Google Apps Script
 import { NextResponse } from 'next/server';
 
-const GAS_BASE_URL = 'https://script.google.com/macros/s/AKfycbwR-NWiU-VN8sui6vyx2l9NWt8CpcYRWqNSB8ObnIcB-56msjtES0j4KunP7LZ6rqiG/exec';
+const GAS_BASE_URL = 'https://script.google.com/macros/s/AKfycbwtoVt7O1YK6L0gjEYzNzCSadACHYSKWLyssuMAlbC04eZfq7QTMEY_n85uTcqOChhU/exec';
 
 export async function GET(request) {
   try {
@@ -15,7 +15,8 @@ export async function GET(request) {
     // Forward all other query parameters
     const gasUrl = new URL(GAS_BASE_URL);
     gasUrl.searchParams.set('path', path);
-    
+    gasUrl.searchParams.set('_server', 'true'); // Indicate this is a server request
+
     // Copy other parameters
     for (const [key, value] of searchParams.entries()) {
       if (key !== 'path') {
@@ -28,15 +29,32 @@ export async function GET(request) {
     const response = await fetch(gasUrl.toString(), {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'no-cache',
       },
+      redirect: 'follow',
     });
 
     if (!response.ok) {
-      throw new Error(`GAS API Error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`GAS API Error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
-    const data = await response.json();
+    const responseText = await response.text();
+
+    // Check if response is HTML (login page)
+    if (responseText.trim().startsWith('<!doctype') || responseText.trim().startsWith('<HTML') || responseText.trim().startsWith('<html')) {
+      throw new Error(`GAS returned HTML login page instead of JSON. The web app requires authentication. Response: ${responseText.substring(0, 200)}`);
+    }
+
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      throw new Error(`Invalid JSON response from GAS: ${responseText.substring(0, 200)}`);
+    }
     
     return NextResponse.json(data, {
       headers: {
@@ -46,7 +64,7 @@ export async function GET(request) {
       },
     });
   } catch (error) {
-    console.error('Proxy error:', error);
+    // console.error('Proxy error:', error);
     return NextResponse.json(
       { error: error.message },
       { 
@@ -99,7 +117,7 @@ export async function POST(request) {
       },
     });
   } catch (error) {
-    console.error('Proxy error:', error);
+    // console.error('Proxy error:', error);
     return NextResponse.json(
       { error: error.message },
       { 

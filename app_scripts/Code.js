@@ -134,6 +134,225 @@ function getAPIDocumentation() {
         body: { admission_id: "string (required)" }
       },
 
+      // Students
+      "GET /students": {
+        description: "Get all students with optional filters",
+        query: {
+          programme_id: "string (optional)",
+          enrollment_status: "string (optional)",
+          year_of_study: "number (optional)"
+        }
+      },
+      "POST /students/create": {
+        description: "Create new student",
+        body: {
+          student_id: "string (required)",
+          first_name: "string (required)",
+          last_name: "string (required)",
+          email: "string (required)",
+          ... "other student fields"
+        }
+      },
+      "POST /students/update": {
+        description: "Update student",
+        body: {
+          student_id: "string (required)",
+          ... "fields to update"
+        }
+      },
+      "POST /students/delete": {
+        description: "Delete student",
+        body: { student_id: "string (required)" }
+      },
+
+      // Courses
+      "GET /courses": {
+        description: "Get all courses with optional filters",
+        query: {
+          programme_id: "string (optional)",
+          semester: "number (optional)"
+        }
+      },
+      "POST /courses/create": {
+        description: "Create new course",
+        body: {
+          course_id: "string (required)",
+          title: "string (required)",
+          credits: "number (required)",
+          programme_id: "string (required)",
+          semester: "number (optional)"
+        }
+      },
+      "POST /courses/update": {
+        description: "Update course",
+        body: {
+          course_id: "string (required)",
+          ... "fields to update"
+        }
+      },
+      "POST /courses/delete": {
+        description: "Delete course",
+        body: { course_id: "string (required)" }
+      },
+
+      // Fees
+      "GET /fees": {
+        description: "Get payments or student fees",
+        query: {
+          student_id: "string (optional)",
+          payment_status: "string (optional)",
+          start_date: "string (optional)",
+          end_date: "string (optional)"
+        }
+      },
+      "GET /fees/structures": {
+        description: "Get fee structures",
+        query: {
+          programme_id: "string (optional)",
+          category: "string (optional)"
+        }
+      },
+      "POST /fees/payment": {
+        description: "Create payment",
+        body: {
+          student_id: "string (required)",
+          amount: "number (required)",
+          payment_mode: "string (required)",
+          ... "other payment fields"
+        }
+      },
+      "GET /fees/receipts": {
+        description: "Get receipts",
+        query: {
+          txn_id: "string (optional)",
+          issued_by: "string (optional)"
+        }
+      },
+
+      // Hostel
+      "GET /hostel/rooms": {
+        description: "Get hostel rooms",
+        query: {
+          hostel: "string (optional)",
+          status: "string (optional)",
+          floor: "number (optional)"
+        }
+      },
+      "GET /hostel/allocations": {
+        description: "Get hostel allocations",
+        query: {
+          student_id: "string (optional)",
+          room_id: "string (optional)",
+          status: "string (optional)"
+        }
+      },
+      "POST /hostel/allocate": {
+        description: "Allocate room to student",
+        body: {
+          student_id: "string (required)",
+          room_id: "string (required)",
+          allocated_by: "string (optional)",
+          reason: "string (optional)"
+        }
+      },
+      "POST /hostel/deallocate": {
+        description: "Deallocate room from student",
+        body: {
+          student_id: "string (required)",
+          reason: "string (optional)"
+        }
+      },
+
+      // Exams
+      "GET /exams": {
+        description: "Get exams with filters",
+        query: {
+          course_id: "string (optional)",
+          invigilator_id: "string (optional)",
+          start_date: "string (optional)",
+          end_date: "string (optional)"
+        }
+      },
+      "POST /exams/create": {
+        description: "Create exam",
+        body: {
+          exam_id: "string (required)",
+          course_id: "string (required)",
+          exam_date: "string (required)",
+          venue: "string (optional)",
+          invigilator_id: "string (optional)"
+        }
+      },
+      "POST /exams/update": {
+        description: "Update exam",
+        body: {
+          exam_id: "string (required)",
+          ... "fields to update"
+        }
+      },
+      "POST /exams/delete": {
+        description: "Delete exam",
+        body: { exam_id: "string (required)" }
+      },
+      "POST /exams/marks": {
+        description: "Enter exam marks",
+        body: {
+          exam_id: "string (required)",
+          student_id: "string (required)",
+          marks_obtained: "number (required)",
+          entered_by: "string (optional)"
+        }
+      },
+      "GET /exams/results": {
+        description: "Get exam results",
+        query: {
+          student_id: "string (optional)",
+          exam_id: "string (optional)"
+        }
+      },
+
+      // Dashboard
+      "GET /dashboard/stats": {
+        description: "Get dashboard statistics"
+      },
+      "GET /dashboard/student": {
+        description: "Get student dashboard stats",
+        query: { student_id: "string (required)" }
+      },
+      "GET /dashboard/activity": {
+        description: "Get recent activity",
+        query: { limit: "number (optional, default: 10)" }
+      },
+      "GET /dashboard/health": {
+        description: "Get system health metrics"
+      },
+
+      // Notifications
+      "GET /notifications": {
+        description: "Get notifications for user",
+        query: { recipient: "string (required)" }
+      },
+      "POST /notifications/create": {
+        description: "Create notification",
+        body: {
+          recipient: "string (required)",
+          type: "string (required)",
+          subject: "string (required)",
+          body: "string (required)"
+        }
+      },
+      "POST /notifications/update": {
+        description: "Update notification",
+        body: {
+          notification_id: "string (required)",
+          ... "fields to update"
+        }
+      },
+      "POST /notifications/mark-read": {
+        description: "Mark notification as read",
+        body: { notification_id: "string (required)" }
+      },
+
       // Audit
       "GET /audit/logs": {
         description: "Get audit logs with optional filters",
