@@ -86,11 +86,11 @@ export default function AdmissionsPage() {
 
   const filteredStudents = students.filter(student => {
     const matchesSearch =
-      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.registrationNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.course.toLowerCase().includes(searchTerm.toLowerCase());
+      (student.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (student.registrationNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (student.course || '').toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = filterStatus === 'all' || student.status === filterStatus;
+    const matchesStatus = filterStatus === 'all' || (student.status === filterStatus);
 
     return matchesSearch && matchesStatus;
   });
@@ -272,7 +272,7 @@ export default function AdmissionsPage() {
                           <div className="flex-shrink-0 h-10 w-10">
                             <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center">
                               <span className="text-sm font-medium text-white">
-                                {student.name.split(' ').map(n => n[0]).join('')}
+                                {(student.name || 'N A').split(' ').map(n => n[0]).join('')}
                               </span>
                             </div>
                           </div>

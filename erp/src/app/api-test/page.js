@@ -70,7 +70,7 @@ export default function ApiTestPage() {
   };
 
   const testDirectUrl = async () => {
-    const url = 'https://script.google.com/macros/s/AKfycbwR-NWiU-VN8sui6vyx2l9NWt8CpcYRWqNSB8ObnIcB-56msjtES0j4KunP7LZ6rqiG/exec?path=admissions/stats';
+    const url = 'https://script.google.com/macros/s/AKfycbwFcL5iw6oXNizW8l-vY9lT5aVvWP_a9tG8NGx2FL1AadF6drtKZPKtoFuqNdiabkIE/exec?path=admissions/stats';
     
     try {
       const response = await fetch(url, {
@@ -109,7 +109,7 @@ export default function ApiTestPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <p><strong>Base URL:</strong> https://script.google.com/macros/s/AKfycbwR-NWiU-VN8sui6vyx2l9NWt8CpcYRWqNSB8ObnIcB-56msjtES0j4KunP7LZ6rqiG/exec</p>
+                <p><strong>Base URL:</strong> https://script.google.com/macros/s/AKfycbwFcL5iw6oXNizW8l-vY9lT5aVvWP_a9tG8NGx2FL1AadF6drtKZPKtoFuqNdiabkIE/exec</p>
                 <p><strong>Environment:</strong> {process.env.NODE_ENV}</p>
                 <p><strong>CORS Mode:</strong> Enabled</p>
               </div>

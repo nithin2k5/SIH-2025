@@ -25,6 +25,8 @@ class ApiService {
     if (DEV_MODE) {
       console.log(`Making API request to: ${url.toString()}`);
       console.log('Request options:', options);
+      console.log('Endpoint:', endpoint);
+      console.log('Path param:', pathParam);
     }
 
     // Configure request
@@ -66,13 +68,19 @@ class ApiService {
         if (data.error) {
           throw new Error(data.error);
         }
-        
+
         // If it has the GAS wrapper format, return the data property
         if (data.status && data.data) {
+          if (DEV_MODE) {
+            console.log('Returning GAS wrapper data:', data.data);
+          }
           return data.data;
         }
-        
+
         // Otherwise return the data as-is
+        if (DEV_MODE) {
+          console.log('Returning data as-is:', data);
+        }
         return data;
       }
       
@@ -176,56 +184,11 @@ class ApiService {
 
   // Courses
   async getCourses(params = {}) {
-    // Mock data for development
-    return {
-      courses: [
-        {
-          id: '1',
-          courseCode: 'CS101',
-          courseName: 'Introduction to Computer Science',
-          department: 'Computer Science',
-          semester: 1,
-          credits: 4,
-          instructor: 'Dr. Smith',
-          maxStudents: 60,
-          enrolledStudents: 45,
-          status: 'active'
-        },
-        {
-          id: '2',
-          courseCode: 'ME201',
-          courseName: 'Thermodynamics',
-          department: 'Mechanical Engineering',
-          semester: 3,
-          credits: 3,
-          instructor: 'Dr. Johnson',
-          maxStudents: 50,
-          enrolledStudents: 38,
-          status: 'active'
-        }
-      ],
-      total: 45,
-      page: params.page || 1,
-      limit: params.limit || 20
-    };
+    return this.request('/courses', { params });
   }
 
   async getCourseById(id) {
-    return {
-      id,
-      courseCode: 'CS101',
-      courseName: 'Introduction to Computer Science',
-      department: 'Computer Science',
-      semester: 1,
-      credits: 4,
-      instructor: 'Dr. Smith',
-      maxStudents: 60,
-      enrolledStudents: 45,
-      status: 'active',
-      description: 'An introduction to fundamental concepts in computer science.',
-      prerequisites: [],
-      syllabus: 'Week 1: Introduction...'
-    };
+    return this.request(`/courses/${id}`);
   }
 
   async createCourse(courseData) {
@@ -616,6 +579,190 @@ class ApiService {
     return this.request('/admissions/delete', {
       method: 'POST',
       body: JSON.stringify({ admission_id: admissionId }),
+    });
+  }
+
+  // User management APIs
+  async getUsers(params = {}) {
+    return this.request('/users', { params });
+  }
+
+  async getUserById(userId) {
+    return this.request(`/users/profile`, {
+      params: { user_id: userId }
+    });
+  }
+
+  async createUser(userData) {
+    return this.request('/users/create', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async updateUser(userId, userData) {
+    return this.request('/users/update', {
+      method: 'POST',
+      body: JSON.stringify({
+        user_id: userId,
+        ...userData
+      }),
+    });
+  }
+
+  async deleteUser(userId) {
+    return this.request('/users/delete', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: userId }),
+    });
+  }
+
+  // Dashboard APIs
+  async getSystemHealth() {
+    return this.request('/dashboard/health');
+  }
+
+  async getRecentActivity(limit = 10) {
+    return this.request('/dashboard/activity', {
+      params: { limit }
+    });
+  }
+
+  // Course management APIs
+  async createCourse(courseData) {
+    return this.request('/courses/create', {
+      method: 'POST',
+      body: JSON.stringify(courseData),
+    });
+  }
+
+  async updateCourse(courseId, courseData) {
+    return this.request('/courses/update', {
+      method: 'POST',
+      body: JSON.stringify({
+        course_id: courseId,
+        ...courseData
+      }),
+    });
+  }
+
+  async deleteCourse(courseId) {
+    return this.request('/courses/delete', {
+      method: 'POST',
+      body: JSON.stringify({ course_id: courseId }),
+    });
+  }
+
+  // Hostel management APIs
+  async getHostelRooms(params = {}) {
+    return this.request('/hostel/rooms', { params });
+  }
+
+  async getHostelAllocations(params = {}) {
+    return this.request('/hostel/allocations', { params });
+  }
+
+  async allocateHostelRoom(studentId, roomId, allocationData = {}) {
+    return this.request('/hostel/allocate', {
+      method: 'POST',
+      body: JSON.stringify({
+        student_id: studentId,
+        room_id: roomId,
+        ...allocationData
+      }),
+    });
+  }
+
+  async deallocateHostelRoom(studentId, reason = '') {
+    return this.request('/hostel/deallocate', {
+      method: 'POST',
+      body: JSON.stringify({
+        student_id: studentId,
+        reason
+      }),
+    });
+  }
+
+  // Fee management APIs
+  async getFeeStructures(params = {}) {
+    return this.request('/fees/structures', { params });
+  }
+
+  async createPayment(paymentData) {
+    return this.request('/fees/payment', {
+      method: 'POST',
+      body: JSON.stringify(paymentData),
+    });
+  }
+
+  async getReceipts(params = {}) {
+    return this.request('/fees/receipts', { params });
+  }
+
+  // Exam management APIs
+  async createExam(examData) {
+    return this.request('/exams/create', {
+      method: 'POST',
+      body: JSON.stringify(examData),
+    });
+  }
+
+  async updateExam(examId, examData) {
+    return this.request('/exams/update', {
+      method: 'POST',
+      body: JSON.stringify({
+        exam_id: examId,
+        ...examData
+      }),
+    });
+  }
+
+  async deleteExam(examId) {
+    return this.request('/exams/delete', {
+      method: 'POST',
+      body: JSON.stringify({ exam_id: examId }),
+    });
+  }
+
+  async enterExamMarks(examId, studentId, marksData) {
+    return this.request('/exams/marks', {
+      method: 'POST',
+      body: JSON.stringify({
+        exam_id: examId,
+        student_id: studentId,
+        ...marksData
+      }),
+    });
+  }
+
+  // Notification APIs
+  async getNotifications(recipientId) {
+    return this.request('/notifications', {
+      params: { recipient: recipientId }
+    });
+  }
+
+  async createNotification(notificationData) {
+    return this.request('/notifications/create', {
+      method: 'POST',
+      body: JSON.stringify(notificationData),
+    });
+  }
+
+  async updateNotification(notificationId, updateData) {
+    return this.request('/notifications/update', {
+      method: 'POST',
+      body: JSON.stringify({
+        notification_id: notificationId,
+        ...updateData
+      }),
+    });
+  }
+
+  async markNotificationAsRead(notificationId) {
+    return this.request('/notifications/mark-read', {
+      method: 'POST',
+      body: JSON.stringify({ notification_id: notificationId }),
     });
   }
 }

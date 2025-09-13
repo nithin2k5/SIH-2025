@@ -51,6 +51,103 @@ function doPost(request) {
       case 'admissions/delete':
         return handleDeleteAdmission(requestData);
 
+      // Students endpoints
+      case 'students':
+        return handleGetStudents(params);
+
+      case 'students/create':
+        return handleCreateStudent(requestData);
+
+      case 'students/update':
+        return handleUpdateStudent(requestData);
+
+      case 'students/delete':
+        return handleDeleteStudent(requestData);
+
+      // Courses endpoints
+      case 'courses':
+        return handleGetCourses(params);
+
+      case 'courses/create':
+        return handleCreateCourse(requestData);
+
+      case 'courses/update':
+        return handleUpdateCourse(requestData);
+
+      case 'courses/delete':
+        return handleDeleteCourse(requestData);
+
+      // Fees endpoints
+      case 'fees':
+        return handleGetFees(params);
+
+      case 'fees/structures':
+        return handleGetFeeStructures(params);
+
+      case 'fees/payment':
+        return handleCreatePayment(requestData);
+
+      case 'fees/receipts':
+        return handleGetReceipts(params);
+
+      // Hostel endpoints
+      case 'hostel/rooms':
+        return handleGetHostelRooms(params);
+
+      case 'hostel/allocations':
+        return handleGetHostelAllocations(params);
+
+      case 'hostel/allocate':
+        return handleAllocateRoom(requestData);
+
+      case 'hostel/deallocate':
+        return handleDeallocateRoom(requestData);
+
+      // Exams endpoints
+      case 'exams':
+        return handleGetExams(params);
+
+      case 'exams/create':
+        return handleCreateExam(requestData);
+
+      case 'exams/update':
+        return handleUpdateExam(requestData);
+
+      case 'exams/delete':
+        return handleDeleteExam(requestData);
+
+      case 'exams/marks':
+        return handleEnterExamMarks(requestData);
+
+      case 'exams/results':
+        return handleGetExamResults(params);
+
+      // Dashboard endpoints
+      case 'dashboard/stats':
+        return handleGetDashboardStats(params);
+
+      case 'dashboard/student':
+        return handleGetStudentDashboardStats(params);
+
+      case 'dashboard/activity':
+        return handleGetRecentActivity(params);
+
+      case 'dashboard/health':
+        return handleGetSystemHealth(params);
+
+      // Notifications endpoints
+      case 'notifications':
+        return handleGetNotifications(params);
+
+      case 'notifications/create':
+        return handleCreateNotification(requestData);
+
+      case 'notifications/update':
+        return handleUpdateNotification(requestData);
+
+      case 'notifications/mark-read':
+        return handleMarkNotificationAsRead(requestData);
+
       default:
         return sendErrorResponse('Unknown endpoint', 404);
     }
@@ -66,6 +163,16 @@ function doPost(request) {
  */
 function doGet(request) {
   try {
+    // Check if this is a server-side request (from Next.js proxy)
+    const isServerRequest = request.parameter['_server'] === 'true';
+
+    Logger.log(`Server request: ${isServerRequest}`);
+
+    // For server requests, return a simple test response to verify connectivity
+    if (isServerRequest && request.parameter.path === 'test') {
+      return sendSuccessResponse({ message: 'Server connection successful', timestamp: getCurrentTimestamp() });
+    }
+
     const path = request.parameter.path || '';
     const params = request.parameter;
 
@@ -92,6 +199,10 @@ function doGet(request) {
 
       case 'admissions/my':
         return handleGetMyAdmissions(params);
+
+      // Courses endpoints
+      case 'courses':
+        return handleGetCourses(params);
 
       // Audit endpoints
       case 'audit/logs':
@@ -288,5 +399,361 @@ function handleGetAuditLogs(params) {
     return sendJsonResponse(result);
   } else {
     return sendErrorResponse(result.error, 500);
+  }
+}
+
+// Students handlers
+function handleGetStudents(params) {
+  const filters = {};
+  if (params.programme_id) filters.programme_id = params.programme_id;
+  if (params.enrollment_status) filters.enrollment_status = params.enrollment_status;
+  if (params.year_of_study) filters.year_of_study = params.year_of_study;
+
+  const result = getAllStudents(filters);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 500);
+  }
+}
+
+function handleCreateStudent(data) {
+  const result = createStudent(data);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+function handleUpdateStudent(data) {
+  const result = updateStudent(data.student_id, data);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+function handleDeleteStudent(data) {
+  const result = deleteStudent(data.student_id);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+// Courses handlers
+function handleGetCourses(params) {
+  Logger.log('handleGetCourses called with params:', params);
+  Logger.log('Params type:', typeof params);
+  Logger.log('Params keys:', params ? Object.keys(params) : 'null');
+
+  try {
+    const filters = {};
+    if (params.programme_id) filters.programme_id = params.programme_id;
+    if (params.semester) filters.semester = params.semester;
+
+    Logger.log('Using filters:', filters);
+
+    const result = getAllCourses(filters);
+    Logger.log('getAllCourses result:', result);
+    Logger.log('Result success:', result.success);
+    Logger.log('Result courses length:', result.courses ? result.courses.length : 'undefined');
+
+    if (result.success) {
+      Logger.log('Returning courses data with', result.courses.length, 'courses');
+      const response = sendJsonResponse(result);
+      Logger.log('Response created successfully');
+      return response;
+    } else {
+      Logger.log('Returning error:', result.error);
+      return sendErrorResponse(result.error, 500);
+    }
+  } catch (error) {
+    Logger.log('Error in handleGetCourses:', error);
+    return sendErrorResponse('Internal server error: ' + error.toString(), 500);
+  }
+}
+
+function handleCreateCourse(data) {
+  const result = createCourse(data);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+function handleUpdateCourse(data) {
+  const result = updateCourse(data.course_id, data);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+function handleDeleteCourse(data) {
+  const result = deleteCourse(data.course_id);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+// Fees handlers
+function handleGetFees(params) {
+  if (params.student_id) {
+    const result = getStudentFees(params.student_id);
+    if (result.success) {
+      return sendJsonResponse(result);
+    } else {
+      return sendErrorResponse(result.error, 500);
+    }
+  } else {
+    const filters = {};
+    if (params.start_date) filters.start_date = params.start_date;
+    if (params.end_date) filters.end_date = params.end_date;
+    if (params.student_id) filters.student_id = params.student_id;
+    if (params.payment_status) filters.payment_status = params.payment_status;
+
+    const result = getPayments(filters);
+    if (result.success) {
+      return sendJsonResponse(result);
+    } else {
+      return sendErrorResponse(result.error, 500);
+    }
+  }
+}
+
+function handleGetFeeStructures(params) {
+  const filters = {};
+  if (params.programme_id) filters.programme_id = params.programme_id;
+  if (params.category) filters.category = params.category;
+
+  const result = getFeeStructures(filters);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 500);
+  }
+}
+
+function handleCreatePayment(data) {
+  const result = createPayment(data);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+function handleGetReceipts(params) {
+  const filters = {};
+  if (params.txn_id) filters.txn_id = params.txn_id;
+  if (params.issued_by) filters.issued_by = params.issued_by;
+
+  const result = getReceipts(filters);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 500);
+  }
+}
+
+// Hostel handlers
+function handleGetHostelRooms(params) {
+  const filters = {};
+  if (params.hostel) filters.hostel = params.hostel;
+  if (params.status) filters.status = params.status;
+  if (params.floor) filters.floor = params.floor;
+
+  const result = getHostelRooms(filters);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 500);
+  }
+}
+
+function handleGetHostelAllocations(params) {
+  const filters = {};
+  if (params.student_id) filters.student_id = params.student_id;
+  if (params.room_id) filters.room_id = params.room_id;
+  if (params.status) filters.status = params.status;
+
+  const result = getHostelAllocations(filters);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 500);
+  }
+}
+
+function handleAllocateRoom(data) {
+  const result = allocateRoom(data.student_id, data.room_id, data);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+function handleDeallocateRoom(data) {
+  const result = deallocateRoom(data.student_id, data.reason);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+// Exams handlers
+function handleGetExams(params) {
+  const filters = {};
+  if (params.course_id) filters.course_id = params.course_id;
+  if (params.invigilator_id) filters.invigilator_id = params.invigilator_id;
+  if (params.start_date) filters.start_date = params.start_date;
+  if (params.end_date) filters.end_date = params.end_date;
+
+  const result = getExams(filters);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 500);
+  }
+}
+
+function handleCreateExam(data) {
+  const result = createExam(data);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+function handleUpdateExam(data) {
+  const result = updateExam(data.exam_id, data);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+function handleDeleteExam(data) {
+  const result = deleteExam(data.exam_id);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+function handleEnterExamMarks(data) {
+  const result = enterExamMarks(data.exam_id, data.student_id, data);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+function handleGetExamResults(params) {
+  if (params.student_id) {
+    const result = getStudentExamResults(params.student_id, params.exam_id);
+    if (result.success) {
+      return sendJsonResponse(result);
+    } else {
+      return sendErrorResponse(result.error, 500);
+    }
+  } else if (params.exam_id) {
+    const result = getExamMarks(params.exam_id);
+    if (result.success) {
+      return sendJsonResponse(result);
+    } else {
+      return sendErrorResponse(result.error, 500);
+    }
+  } else {
+    return sendErrorResponse('student_id or exam_id parameter required', 400);
+  }
+}
+
+// Dashboard handlers
+function handleGetDashboardStats(params) {
+  const result = getDashboardStats();
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 500);
+  }
+}
+
+function handleGetStudentDashboardStats(params) {
+  const result = getStudentDashboardStats(params.student_id);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 500);
+  }
+}
+
+function handleGetRecentActivity(params) {
+  const limit = params.limit ? parseInt(params.limit) : 10;
+  const result = getRecentActivity(limit);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 500);
+  }
+}
+
+function handleGetSystemHealth(params) {
+  const result = getSystemHealth();
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 500);
+  }
+}
+
+// Notifications handlers
+function handleGetNotifications(params) {
+  const result = getNotifications(params.recipient);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 500);
+  }
+}
+
+function handleCreateNotification(data) {
+  const result = createNotification(data);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+function handleUpdateNotification(data) {
+  const result = updateNotification(data.notification_id, data);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+function handleMarkNotificationAsRead(data) {
+  const result = markNotificationAsRead(data.notification_id);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
   }
 }

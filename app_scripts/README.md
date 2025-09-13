@@ -237,6 +237,220 @@ Delete admission application.
 }
 ```
 
+### Students Management
+
+#### GET `/students`
+Get all students with optional filters.
+
+**Query Parameters:**
+- `programme_id` (optional): Filter by programme
+- `enrollment_status` (optional): Filter by status
+- `year_of_study` (optional): Filter by year
+
+#### POST `/students/create`
+Create new student.
+
+**Request Body:**
+```json
+{
+  "student_id": "STD001",
+  "first_name": "John",
+  "last_name": "Doe",
+  "email": "john@example.com",
+  "phone": "+1234567890",
+  "programme_id": "CS001",
+  "enrollment_status": "active",
+  "year_of_study": 1
+}
+```
+
+#### POST `/students/update`
+Update student information.
+
+**Request Body:**
+```json
+{
+  "student_id": "STD001",
+  "phone": "+1987654321",
+  "year_of_study": 2
+}
+```
+
+#### POST `/students/delete`
+Delete student (soft delete).
+
+**Request Body:**
+```json
+{
+  "student_id": "STD001"
+}
+```
+
+### Courses Management
+
+#### GET `/courses`
+Get all courses with optional filters.
+
+**Query Parameters:**
+- `programme_id` (optional): Filter by programme
+- `semester` (optional): Filter by semester
+
+#### POST `/courses/create`
+Create new course.
+
+**Request Body:**
+```json
+{
+  "course_id": "CS101",
+  "title": "Data Structures",
+  "credits": 4,
+  "programme_id": "CS001",
+  "semester": 3
+}
+```
+
+#### POST `/courses/update`
+Update course information.
+
+#### POST `/courses/delete`
+Delete course.
+
+### Fees Management
+
+#### GET `/fees`
+Get payments or student fees.
+
+**Query Parameters:**
+- `student_id` (optional): Get fees for specific student
+- `payment_status` (optional): Filter by status
+- `start_date` (optional): Start date filter
+- `end_date` (optional): End date filter
+
+#### GET `/fees/structures`
+Get fee structures.
+
+**Query Parameters:**
+- `programme_id` (optional): Filter by programme
+- `category` (optional): Filter by category
+
+#### POST `/fees/payment`
+Create payment.
+
+**Request Body:**
+```json
+{
+  "student_id": "STD001",
+  "amount": 50000,
+  "payment_mode": "online",
+  "created_by": "admin"
+}
+```
+
+#### GET `/fees/receipts`
+Get receipts.
+
+### Hostel Management
+
+#### GET `/hostel/rooms`
+Get hostel rooms.
+
+**Query Parameters:**
+- `hostel` (optional): Filter by hostel
+- `status` (optional): Filter by status
+- `floor` (optional): Filter by floor
+
+#### GET `/hostel/allocations`
+Get hostel allocations.
+
+#### POST `/hostel/allocate`
+Allocate room to student.
+
+**Request Body:**
+```json
+{
+  "student_id": "STD001",
+  "room_id": "ROOM001",
+  "allocated_by": "warden",
+  "reason": "Regular allocation"
+}
+```
+
+#### POST `/hostel/deallocate`
+Deallocate room from student.
+
+### Exams Management
+
+#### GET `/exams`
+Get exams with filters.
+
+#### POST `/exams/create`
+Create exam.
+
+**Request Body:**
+```json
+{
+  "exam_id": "EXAM001",
+  "course_id": "CS101",
+  "exam_date": "2024-12-15T10:00:00Z",
+  "venue": "Hall A",
+  "invigilator_id": "STF001"
+}
+```
+
+#### POST `/exams/marks`
+Enter exam marks.
+
+**Request Body:**
+```json
+{
+  "exam_id": "EXAM001",
+  "student_id": "STD001",
+  "marks_obtained": 85,
+  "entered_by": "professor"
+}
+```
+
+#### GET `/exams/results`
+Get exam results.
+
+### Dashboard
+
+#### GET `/dashboard/stats`
+Get dashboard statistics.
+
+#### GET `/dashboard/student`
+Get student dashboard stats.
+
+**Query Parameters:**
+- `student_id` (required): Student ID
+
+#### GET `/dashboard/activity`
+Get recent activity.
+
+#### GET `/dashboard/health`
+Get system health metrics.
+
+### Notifications
+
+#### GET `/notifications`
+Get notifications for user.
+
+**Query Parameters:**
+- `recipient` (required): User ID
+
+#### POST `/notifications/create`
+Create notification.
+
+**Request Body:**
+```json
+{
+  "recipient": "STD001",
+  "type": "announcement",
+  "subject": "Exam Schedule",
+  "body": "Mid-term exams start next week"
+}
+```
+
 ### Audit Logs
 
 #### GET `/audit/logs`

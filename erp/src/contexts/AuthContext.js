@@ -10,38 +10,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Mock users for development/debug purposes only
-  const mockUsers = [
-    {
-      id: '1',
-      name: 'Admin User',
-      email: 'admin@college.edu',
-      role: USER_ROLES.ADMIN,
-      department: 'Administration'
-    },
-    {
-      id: '2',
-      name: 'Staff User',
-      email: 'staff@college.edu',
-      role: USER_ROLES.STAFF,
-      department: 'Admissions'
-    },
-    {
-      id: '3',
-      name: 'Hostel Warden',
-      email: 'warden@college.edu',
-      role: USER_ROLES.HOSTEL_WARDEN,
-      department: 'Hostel'
-    },
-    {
-      id: '4',
-      name: 'John Doe',
-      email: 'student@college.edu',
-      role: USER_ROLES.STUDENT,
-      department: 'Computer Science',
-      registrationNumber: 'CS2024001'
-    }
-  ];
+  // Removed mock users - using only real API authentication
 
   useEffect(() => {
     // Check for stored auth on mount - try cookies first, then localStorage
@@ -80,38 +49,22 @@ export function AuthProvider({ children }) {
     setLoading(true);
 
     try {
-      // First try API authentication
-      try {
-        const response = await apiService.login({ email, password });
-        const user = response.user;
-        const token = response.token;
-        
-        // Store user data and token
-        setUser(user);
-        localStorage.setItem('erp-user', JSON.stringify(user));
-        localStorage.setItem('erp-token', token);
-        
-        // Set cookie for consistency
-        document.cookie = `erp-user=${encodeURIComponent(JSON.stringify(user))}; path=/; max-age=86400`;
-        
-        setLoading(false);
-        return { success: true };
-      } catch (apiError) {
-        // Fallback to mock authentication for development
-        console.warn('API authentication failed, falling back to mock auth:', apiError.message);
-        
-        const foundUser = mockUsers.find(u => u.email === email);
-        if (foundUser && password === 'password') {
-          setUser(foundUser);
-          localStorage.setItem('erp-user', JSON.stringify(foundUser));
-          document.cookie = `erp-user=${encodeURIComponent(JSON.stringify(foundUser))}; path=/; max-age=86400`;
-          setLoading(false);
-          return { success: true };
-        }
-        
-        throw new Error('Invalid credentials');
-      }
+      const response = await apiService.login({ email, password });
+      const user = response.user;
+      const token = response.token;
+
+      // Store user data and token
+      setUser(user);
+      localStorage.setItem('erp-user', JSON.stringify(user));
+      localStorage.setItem('erp-token', token);
+
+      // Set cookie for consistency
+      document.cookie = `erp-user=${encodeURIComponent(JSON.stringify(user))}; path=/; max-age=86400`;
+
+      setLoading(false);
+      return { success: true };
     } catch (error) {
+      console.error('Login failed:', error);
       setLoading(false);
       return { success: false, error: error.message || 'Login failed' };
     }
