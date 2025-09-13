@@ -1,29 +1,84 @@
-// API Service for backend integration
-// This service will handle all API calls to the backend
+// API Service for Google Apps Script backend integration
+// This service handles all API calls through a Next.js proxy to avoid CORS issues
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = '/api/proxy'; // Use Next.js API proxy
+
+// Development mode for logging
+const DEV_MODE = process.env.NODE_ENV === 'development';
 
 class ApiService {
   async request(endpoint, options = {}) {
-    try {
-      const url = `${API_BASE_URL}${endpoint}`;
-      const config = {
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
-        ...options,
-      };
+    // Build URL for the Next.js proxy
+    const pathParam = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
+    const url = new URL(API_BASE_URL, window.location.origin);
+    url.searchParams.set('path', pathParam);
 
-      const response = await fetch(url, config);
+    // Add query parameters for GET requests
+    if (options.params && (!options.method || options.method === 'GET')) {
+      Object.entries(options.params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          url.searchParams.set(key, value);
+        }
+      });
+    }
+
+    if (DEV_MODE) {
+      console.log(`Making API request to: ${url.toString()}`);
+      console.log('Request options:', options);
+    }
+
+    // Configure request
+    const config = {
+      method: options.method || 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    };
+
+    // Add body for POST/PUT requests
+    if (options.body && (options.method === 'POST' || options.method === 'PUT')) {
+      config.body = options.body;
+    }
+
+    try {
+      const response = await fetch(url.toString(), config);
+      
+      if (DEV_MODE) {
+        console.log(`Response status: ${response.status}`);
+      }
       
       if (!response.ok) {
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+      
+      if (DEV_MODE) {
+        console.log('Response data:', data);
+      }
+      
+      // Handle proxy response format
+      if (data && typeof data === 'object') {
+        // If it has an error, throw it
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        
+        // If it has the GAS wrapper format, return the data property
+        if (data.status && data.data) {
+          return data.data;
+        }
+        
+        // Otherwise return the data as-is
+        return data;
+      }
+      
+      return data;
     } catch (error) {
-      console.error('API Request failed:', error);
+      console.error(`API Request failed for ${endpoint}:`, error);
       throw error;
     }
   }
@@ -62,15 +117,17 @@ class ApiService {
 
   // Dashboard
   async getDashboardStats() {
-    // Mock data for development - replace with actual API call
+    const admissionStats = await this.getAdmissionStats();
+    
     return {
-      totalStudents: 1250,
-      totalCourses: 45,
-      totalFeesCollected: 2450000,
-      hostelOccupancy: 85,
-      pendingExams: 12,
-      recentAdmissions: 23,
-      activeUsers: 156
+      totalStudents: admissionStats.stats?.admitted || 0,
+      totalCourses: 45, // TODO: Get from courses API when implemented
+      totalFeesCollected: 2450000, // TODO: Get from fees API when implemented
+      hostelOccupancy: 85, // TODO: Get from hostel API when implemented
+      pendingExams: 12, // TODO: Get from exams API when implemented
+      recentAdmissions: admissionStats.stats?.total || 0,
+      activeUsers: 156, // TODO: Get from users API when implemented
+      admissionStats: admissionStats.stats
     };
   }
 
@@ -90,60 +147,11 @@ class ApiService {
 
   // Students
   async getStudents(params = {}) {
-    // Mock data for development
-    return {
-      students: [
-        {
-          id: '1',
-          registrationNumber: 'CS2024001',
-          name: 'John Doe',
-          email: 'john@college.edu',
-          phone: '+1234567890',
-          course: 'Computer Science',
-          department: 'Computer Science',
-          semester: 3,
-          admissionDate: new Date('2024-01-15'),
-          hostelAllocated: true,
-          roomNumber: 'A-101',
-          status: 'active'
-        },
-        {
-          id: '2',
-          registrationNumber: 'ME2024002',
-          name: 'Jane Smith',
-          email: 'jane@college.edu',
-          phone: '+1234567891',
-          course: 'Mechanical Engineering',
-          department: 'Mechanical Engineering',
-          semester: 2,
-          admissionDate: new Date('2024-02-01'),
-          hostelAllocated: false,
-          roomNumber: null,
-          status: 'active'
-        }
-      ],
-      total: 1250,
-      page: params.page || 1,
-      limit: params.limit || 20
-    };
+    return this.request('/students', { params });
   }
 
   async getStudentById(id) {
-    // Mock data for development
-    return {
-      id,
-      registrationNumber: 'CS2024001',
-      name: 'John Doe',
-      email: 'john@college.edu',
-      phone: '+1234567890',
-      course: 'Computer Science',
-      department: 'Computer Science',
-      semester: 3,
-      admissionDate: new Date('2024-01-15'),
-      hostelAllocated: true,
-      roomNumber: 'A-101',
-      status: 'active'
-    };
+    return this.request(`/students/${id}`);
   }
 
   async createStudent(studentData) {
@@ -537,6 +545,77 @@ class ApiService {
   async markNotificationAsRead(notificationId) {
     return this.request(`/notifications/${notificationId}/read`, {
       method: 'PUT',
+    });
+  }
+
+  // Admissions
+  async getAdmissions(params = {}) {
+    return this.request('/admissions', { params });
+  }
+
+  async getMyAdmissions(email) {
+    return this.request('/admissions/my', { params: { email } });
+  }
+
+  async getAdmissionStats() {
+    return this.request('/admissions/stats');
+  }
+
+  async createAdmission(admissionData) {
+    // Map frontend form data to backend API format
+    const apiData = {
+      first_name: admissionData.firstName,
+      last_name: admissionData.lastName,
+      email: admissionData.email,
+      phone: admissionData.phone,
+      programme_applied: admissionData.course,
+      documents: admissionData.documents || ''
+    };
+
+    return this.request('/admissions/create', {
+      method: 'POST',
+      body: JSON.stringify(apiData),
+    });
+  }
+
+  async updateAdmission(admissionId, admissionData) {
+    const apiData = {
+      admission_id: admissionId,
+      ...admissionData
+    };
+
+    return this.request('/admissions/update', {
+      method: 'POST',
+      body: JSON.stringify(apiData),
+    });
+  }
+
+  async updateAdmissionStatus(admissionId, status, verifierNotes = '', assignedOfficerId = '') {
+    return this.request('/admissions/update-status', {
+      method: 'POST',
+      body: JSON.stringify({
+        admission_id: admissionId,
+        status,
+        verifier_notes: verifierNotes,
+        assigned_officer_id: assignedOfficerId
+      }),
+    });
+  }
+
+  async admitStudent(admissionId, studentData) {
+    return this.request('/admissions/admit-student', {
+      method: 'POST',
+      body: JSON.stringify({
+        admission_id: admissionId,
+        student_data: studentData
+      }),
+    });
+  }
+
+  async deleteAdmission(admissionId) {
+    return this.request('/admissions/delete', {
+      method: 'POST',
+      body: JSON.stringify({ admission_id: admissionId }),
     });
   }
 }

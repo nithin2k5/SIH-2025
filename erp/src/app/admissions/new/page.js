@@ -11,6 +11,7 @@ import Input from '../../../components/ui/Input';
 import Card, { CardContent, CardHeader } from '../../../components/ui/Card';
 import Breadcrumb from '../../../components/ui/Breadcrumb';
 import { CheckCircle, Upload } from 'lucide-react';
+import { apiService } from '../../../services/apiService';
 
 // Validation schema
 const admissionSchema = yup.object({
@@ -76,19 +77,27 @@ export default function NewAdmission() {
 
   const onSubmit = async (data) => {
     try {
-      // Mock API call - in real app, this would submit to backend
       console.log('Submitting admission data:', data);
 
-      // Generate mock registration number
-      const regNum = `CS${new Date().getFullYear()}${(Math.floor(Math.random() * 900) + 100).toString()}`;
-      setRegistrationNumber(regNum);
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      setSubmitted(true);
+      // Submit to actual API
+      const response = await apiService.createAdmission(data);
+      console.log('Create admission response:', response);
+      
+      // Handle Google Apps Script response format: { success: true, admission: {...} }
+      const admission = response.admission || response;
+      
+      if (admission && admission.admission_id) {
+        // Use the admission_id as registration number or generate one based on it
+        const regNum = admission.application_ref || `ADM${new Date().getFullYear()}${admission.admission_id.slice(-3)}`;
+        setRegistrationNumber(regNum);
+        setSubmitted(true);
+      } else {
+        throw new Error('Failed to create admission - no admission data received');
+      }
     } catch (error) {
       console.error('Error submitting form:', error);
+      // You might want to show an error message to the user here
+      alert('Failed to submit admission. Please try again.');
     }
   };
 

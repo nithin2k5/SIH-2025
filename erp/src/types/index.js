@@ -34,6 +34,14 @@ export const EXAM_STATUS = {
   CANCELLED: 'cancelled'
 };
 
+export const ADMISSION_STATUS = {
+  PENDING: 'pending',
+  UNDER_REVIEW: 'under_review',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  ADMITTED: 'admitted'
+};
+
 // User Type
 export const User = {
   id: '',
