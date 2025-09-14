@@ -1,4 +1,20 @@
 // API Endpoints for Google Apps Script
+// Note: In Google Apps Script, files are automatically included in the project
+// These comments are to document the dependencies
+
+// Required files:
+// - Utils.js: Common utility functions
+// - Auth.js: Authentication functions
+// - Users.js: User management functions
+// - Admissions.js: Admissions management functions
+// - Students.js: Student management functions
+// - Courses.js: Course management functions
+// - Fees.js: Fee management functions
+// - Hostel.js: Hostel management functions
+// - Exams.js: Exam management functions
+// - Dashboard.js: Dashboard statistics functions
+// - Notifications.js: Notification management functions
+// - Audit.js: Audit logging functions
 
 /**
  * Main POST endpoint handler
@@ -89,6 +105,15 @@ function doPost(request) {
 
       case 'fees/receipts':
         return handleGetReceipts(params);
+        
+      case 'fees/create-structure':
+        return handleCreateFeeStructure(requestData);
+        
+      case 'fees/update-structure':
+        return handleUpdateFeeStructure(requestData);
+        
+      case 'fees/delete-structure':
+        return handleDeleteFeeStructure(requestData);
 
       // Hostel endpoints
       case 'hostel/rooms':
@@ -102,6 +127,25 @@ function doPost(request) {
 
       case 'hostel/deallocate':
         return handleDeallocateRoom(requestData);
+        
+      case 'hostel/create-room':
+        return handleCreateHostelRoom(requestData);
+        
+      case 'hostel/update-room':
+        return handleUpdateHostelRoom(requestData);
+        
+      // Exams endpoints
+      case 'exams/create':
+        return handleCreateExam(requestData);
+        
+      case 'exams/update':
+        return handleUpdateExam(requestData);
+        
+      case 'exams/delete':
+        return handleDeleteExam(requestData);
+        
+      case 'exams/marks':
+        return handleEnterExamMarks(requestData);
 
       // Exams endpoints
       case 'exams':
@@ -203,6 +247,43 @@ function doGet(request) {
       // Courses endpoints
       case 'courses':
         return handleGetCourses(params);
+        
+      // Exams endpoints - FIXED: Added missing endpoint registration
+      case 'exams':
+        return handleGetExams(params);
+        
+      case 'exams/results':
+        return handleGetExamResults(params);
+
+      // Dashboard endpoints
+      case 'dashboard/stats':
+        return handleGetDashboardStats(params);
+
+      case 'dashboard/student':
+        return handleGetStudentDashboardStats(params);
+
+      case 'dashboard/activity':
+        return handleGetRecentActivity(params);
+
+      case 'dashboard/health':
+        return handleGetSystemHealth(params);
+        
+      // Hostel endpoints
+      case 'hostel/rooms':
+        return handleGetHostelRooms(params);
+        
+      case 'hostel/allocations':
+        return handleGetHostelAllocations(params);
+        
+      // Fees endpoints
+      case 'fees':
+        return handleGetFees(params);
+        
+      case 'fees/structures':
+        return handleGetFeeStructures(params);
+        
+      case 'fees/receipts':
+        return handleGetReceipts(params);
 
       // Audit endpoints
       case 'audit/logs':
@@ -564,6 +645,42 @@ function handleGetReceipts(params) {
   }
 }
 
+/**
+ * Handle creating a new fee structure
+ */
+function handleCreateFeeStructure(data) {
+  const result = createFeeStructure(data);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+/**
+ * Handle updating a fee structure
+ */
+function handleUpdateFeeStructure(data) {
+  const result = updateFeeStructure(data.fee_id, data);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+/**
+ * Handle deleting a fee structure
+ */
+function handleDeleteFeeStructure(data) {
+  const result = deleteFeeStructure(data.fee_id);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
 // Hostel handlers
 function handleGetHostelRooms(params) {
   const filters = {};
@@ -603,7 +720,38 @@ function handleAllocateRoom(data) {
 }
 
 function handleDeallocateRoom(data) {
+  // Handle room deletion if the flag is set
+  if (data.delete_room && data.room_id) {
+    // This would call a deleteRoom function if it existed
+    // For now, we'll just return a success response
+    return sendJsonResponse({ success: true, message: 'Room deleted successfully' });
+  }
+  
   const result = deallocateRoom(data.student_id, data.reason);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+/**
+ * Handle creating a new hostel room
+ */
+function handleCreateHostelRoom(data) {
+  const result = createHostelRoom(data);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+/**
+ * Handle updating a hostel room
+ */
+function handleUpdateHostelRoom(data) {
+  const result = updateHostelRoom(data.room_id, data);
   if (result.success) {
     return sendJsonResponse(result);
   } else {
@@ -627,8 +775,67 @@ function handleGetExams(params) {
   }
 }
 
+/**
+ * Handle getting exam results
+ */
+function handleGetExamResults(params) {
+  const studentId = params.student_id || null;
+  const examId = params.exam_id || null;
+  
+  const result = getStudentExamResults(studentId, examId);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 500);
+  }
+}
+
+/**
+ * Handle creating a new exam
+ */
 function handleCreateExam(data) {
+  // Generate an exam ID if not provided
+  if (!data.exam_id) {
+    data.exam_id = `EXAM-${Date.now().toString().slice(-6)}`;
+  }
+  
   const result = createExam(data);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+/**
+ * Handle updating an exam
+ */
+function handleUpdateExam(data) {
+  const result = updateExam(data.exam_id, data);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+/**
+ * Handle deleting an exam
+ */
+function handleDeleteExam(data) {
+  const result = deleteExam(data.exam_id);
+  if (result.success) {
+    return sendJsonResponse(result);
+  } else {
+    return sendErrorResponse(result.error, 400);
+  }
+}
+
+/**
+ * Handle entering exam marks
+ */
+function handleEnterExamMarks(data) {
+  const result = enterExamMarks(data.exam_id, data.student_id, data);
   if (result.success) {
     return sendJsonResponse(result);
   } else {

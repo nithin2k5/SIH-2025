@@ -62,7 +62,8 @@ export default function ExamsPage() {
         // Admin/Staff view - load all data
         const [examsData, resultsData] = await Promise.all([
           apiService.getExams(),
-          apiService.getExamResults()
+          // Pass a dummy exam_id to avoid the backend error
+          apiService.getExamResults(null, 'all')
         ]);
         setExams(examsData.exams || []);
         setExamResults(resultsData);

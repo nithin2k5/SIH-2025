@@ -42,6 +42,27 @@ export const ADMISSION_STATUS = {
   ADMITTED: 'admitted'
 };
 
+// Admission Model - Based on AdmissionsSchema from backend
+export const Admission = {
+  admission_id: '',
+  application_ref: '',
+  applicant_name: '',
+  first_name: '',
+  last_name: '',
+  email: '',
+  phone: '',
+  programme_applied: '',
+  documents: '',
+  applied_on: new Date(),
+  status: ADMISSION_STATUS.PENDING,
+  assigned_officer_id: '',
+  verifier_notes: '',
+  admitted_on: null,
+  student_id: null,
+  created_at: new Date(),
+  updated_at: new Date()
+};
+
 // User Type
 export const User = {
   id: '',
@@ -86,17 +107,17 @@ export const Fee = {
 };
 
 // Hostel Type
-export const HostelRoom = {
-  id: '',
-  roomNumber: '',
-  block: '',
-  floor: 0,
-  capacity: 2,
-  occupied: 0,
-  status: HOSTEL_STATUS.AVAILABLE,
-  amenities: [],
-  monthlyRent: 0
-};
+// export const HostelRoom = {
+//   id: '',
+//   roomNumber: '',
+//   block: '',
+//   floor: 0,
+//   capacity: 2,
+//   occupied: 0,
+//   status: HOSTEL_STATUS.AVAILABLE,
+//   amenities: [],
+//   monthlyRent: 0
+// };
 
 // Exam Type
 export const Exam = {
@@ -236,4 +257,79 @@ export const StudentDashboardStats = {
   upcomingExams: 0,
   averageGrade: 0,
   attendance: 0
+};
+
+// Fee Master Type based on FeeMaster schema
+export const FeeMaster = {
+  fee_id: '',
+  programme_id: '',
+  component: '',
+  amount: 0,
+  currency: 'INR',
+  effective_from: new Date(),
+  effective_to: null,
+  category: '',
+  created_at: new Date(),
+  updated_at: new Date()
+};
+
+// Transaction Type based on Transactions schema
+export const Transaction = {
+  txn_id: '',
+  student_id: '',
+  admission_id: '',
+  date: new Date(),
+  amount: 0,
+  currency: 'INR',
+  payment_mode: '',
+  gateway_ref: '',
+  payment_status: PAYMENT_STATUS.PENDING,
+  receipt_id: '',
+  created_by: '',
+  created_at: new Date(),
+  notes: ''
+};
+
+// Receipt Type based on Receipts schema
+export const Receipt = {
+  receipt_id: '',
+  txn_id: '',
+  issued_by: '',
+  issued_on: new Date(),
+  pdf_drive_file_id: '',
+  email_sent: false,
+  created_at: new Date()
+};
+
+// Hostel Room Type based on HostelRooms schema
+export const HostelRoom = {
+  room_id: '',
+  hostel: '',
+  block: '',
+  floor: 0,
+  room_no: '',
+  bed_no: '',
+  capacity: 1,
+  current_student_id: null,
+  status: HOSTEL_STATUS.AVAILABLE,
+  allocated_on: null,
+  released_on: null,
+  amenities: '',
+  rent_per_month: 0,
+  created_at: new Date(),
+  updated_at: new Date()
+};
+
+// Hostel Allocation Type based on HostelAllocations schema
+export const HostelAllocation = {
+  alloc_id: '',
+  student_id: '',
+  room_id: '',
+  allocated_by: '',
+  allocated_on: new Date(),
+  released_on: null,
+  reason: '',
+  status: 'active',
+  created_at: new Date(),
+  updated_at: new Date()
 };

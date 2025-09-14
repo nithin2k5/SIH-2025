@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useAuth } from '../../contexts/AuthContext';
 import Layout from '../../components/layout/Layout';
 import Button from '../../components/ui/Button';
 import Card, { CardContent, CardHeader } from '../../components/ui/Card';
 import Breadcrumb from '../../components/ui/Breadcrumb';
 import { apiService } from '../../services/apiService';
+import { ADMISSION_STATUS } from '../../types';
+import AdmissionModal from '../../components/admissions/AdmissionModal';
+import { ConfirmModal } from '../../components/ui/Modal';
 import {
   Users,
   Plus,
@@ -15,7 +17,8 @@ import {
   Filter,
   Eye,
   Edit,
-  FileText
+  FileText,
+  Trash2
 } from 'lucide-react';
 import ApiStatusNotification from '../../components/ui/ApiStatusNotification';
 
@@ -27,6 +30,13 @@ export default function AdmissionsPage() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [apiError, setApiError] = useState(null);
   const [usingMockData, setUsingMockData] = useState(false);
+  
+  // Modal states
+  const [isAdmissionModalOpen, setIsAdmissionModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [currentAdmission, setCurrentAdmission] = useState(null);
+  const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     loadStudents();
@@ -35,19 +45,15 @@ export default function AdmissionsPage() {
   const loadStudents = async () => {
     try {
       console.log('Loading admissions data...');
-      const response = await apiService.getAdmissions();
-      console.log('Received admissions response:', response);
-      
-      // Handle Google Apps Script response format: { success: true, admissions: [...] }
-      const admissions = response.admissions || response;
-      console.log('Extracted admissions array:', admissions);
+      const admissions = await apiService.getAdmissions();
+      console.log('Received normalized admissions:', admissions);
       
       if (admissions && Array.isArray(admissions)) {
         // Map admission data to student format for display
         const mappedStudents = admissions.map(admission => ({
           id: admission.admission_id,
-          registrationNumber: admission.application_ref || `ADM${admission.admission_id}`,
-          name: `${admission.first_name} ${admission.last_name}`,
+          registrationNumber: admission.application_ref,
+          name: admission.applicant_name || `${admission.first_name} ${admission.last_name}`,
           email: admission.email,
           phone: admission.phone,
           course: admission.programme_applied,
@@ -58,13 +64,15 @@ export default function AdmissionsPage() {
           roomNumber: null,
           feesPaid: 0,
           totalFees: 50000,
-          status: admission.status === 'admitted' ? 'active' : admission.status,
+          status: admission.status === ADMISSION_STATUS.ADMITTED ? 'active' : admission.status,
           gpa: null,
           documents: admission.documents ? admission.documents.split(',') : [],
           guardian: '',
           address: '',
           bloodGroup: '',
-          emergencyContact: ''
+          emergencyContact: '',
+          // Store the original admission data for reference
+          admissionData: admission
         }));
         setStudents(mappedStudents);
         setApiError(null);
@@ -101,8 +109,61 @@ export default function AdmissionsPage() {
         return 'bg-green-100 text-green-800';
       case 'inactive':
         return 'bg-red-100 text-red-800';
+      case ADMISSION_STATUS.PENDING:
+        return 'bg-yellow-100 text-yellow-800';
+      case ADMISSION_STATUS.UNDER_REVIEW:
+        return 'bg-blue-100 text-blue-800';
+      case ADMISSION_STATUS.APPROVED:
+        return 'bg-green-100 text-green-800';
+      case ADMISSION_STATUS.REJECTED:
+        return 'bg-red-100 text-red-800';
+      case ADMISSION_STATUS.ADMITTED:
+        return 'bg-purple-100 text-purple-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+  
+  // Handler for opening the create admission modal
+  const handleCreateAdmission = () => {
+    setCurrentAdmission(null);
+    setModalMode('create');
+    setIsAdmissionModalOpen(true);
+  };
+  
+  // Handler for opening the edit admission modal
+  const handleEditAdmission = (student) => {
+    setCurrentAdmission(student.admissionData);
+    setModalMode('edit');
+    setIsAdmissionModalOpen(true);
+  };
+  
+  // Handler for opening the delete confirmation modal
+  const handleDeleteClick = (student) => {
+    setCurrentAdmission(student.admissionData);
+    setIsDeleteModalOpen(true);
+  };
+  
+  // Handler for successful admission creation/update
+  const handleAdmissionSuccess = (admission) => {
+    // Refresh the student list
+    loadStudents();
+  };
+  
+  // Handler for admission deletion
+  const handleDeleteConfirm = async () => {
+    if (!currentAdmission) return;
+    
+    try {
+      setIsDeleting(true);
+      await apiService.deleteAdmission(currentAdmission.admission_id);
+      loadStudents();
+      setIsDeleteModalOpen(false);
+    } catch (error) {
+      console.error('Error deleting admission:', error);
+      setApiError(error.message || 'Failed to delete admission');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -134,12 +195,10 @@ export default function AdmissionsPage() {
                 View and manage student admissions
               </p>
             </div>
-            <Link href="/admissions/new">
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                New Admission
-              </Button>
-            </Link>
+            <Button onClick={handleCreateAdmission}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Admission
+            </Button>
           </div>
         </div>
 
@@ -302,13 +361,21 @@ export default function AdmissionsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-2">
-                          <Button variant="secondary" size="sm">
-                            <Eye className="mr-1 h-3 w-3" />
-                            View
-                          </Button>
-                          <Button variant="secondary" size="sm">
+                          <Button 
+                            variant="secondary" 
+                            size="sm"
+                            onClick={() => handleEditAdmission(student)}
+                          >
                             <Edit className="mr-1 h-3 w-3" />
                             Edit
+                          </Button>
+                          <Button 
+                            variant="danger" 
+                            size="sm"
+                            onClick={() => handleDeleteClick(student)}
+                          >
+                            <Trash2 className="mr-1 h-3 w-3" />
+                            Delete
                           </Button>
                         </div>
                       </td>
@@ -332,6 +399,27 @@ export default function AdmissionsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Admission Modal */}
+        <AdmissionModal
+          isOpen={isAdmissionModalOpen}
+          onClose={() => setIsAdmissionModalOpen(false)}
+          onSuccess={handleAdmissionSuccess}
+          admission={currentAdmission}
+          mode={modalMode}
+        />
+
+        {/* Delete Confirmation Modal */}
+        <ConfirmModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={handleDeleteConfirm}
+          title="Delete Admission"
+          message={`Are you sure you want to delete the admission for ${currentAdmission?.applicant_name || 'this student'}? This action cannot be undone.`}
+          confirmText="Delete"
+          confirmVariant="danger"
+          isLoading={isDeleting}
+        />
     </Layout>
   );
 }

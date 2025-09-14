@@ -35,12 +35,6 @@ const navigationItems = [
     roles: [USER_ROLES.ADMIN, USER_ROLES.STAFF]
   },
   {
-    name: 'New Admission',
-    href: '/admissions/new',
-    icon: Users,
-    roles: [USER_ROLES.ADMIN, USER_ROLES.STAFF]
-  },
-  {
     name: 'Courses',
     href: '/courses',
     icon: BookOpen,

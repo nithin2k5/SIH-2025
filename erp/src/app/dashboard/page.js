@@ -29,6 +29,8 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [studentStats, setStudentStats] = useState(null);
   const [notifications, setNotifications] = useState([]);
+  const [recentAdmissions, setRecentAdmissions] = useState([]);
+  const [upcomingExams, setUpcomingExams] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,8 +46,14 @@ export default function Dashboard() {
           setNotifications(notificationsData);
         } else {
           // Fetch general dashboard data for admin/staff
-          const data = await apiService.getDashboardStats();
+          const [data, admissions, exams] = await Promise.all([
+            apiService.getDashboardStats(),
+            apiService.getRecentAdmissions(5),
+            apiService.getUpcomingExams(5)
+          ]);
           setStats(data);
+          setRecentAdmissions(admissions);
+          setUpcomingExams(exams);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -455,24 +463,26 @@ export default function Dashboard() {
                 </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Users className="h-5 w-5 text-green-600" />
+                  {recentAdmissions.length > 0 ? (
+                    recentAdmissions.map((admission, index) => (
+                      <div key={admission.admission_id || index} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Users className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900">{admission.applicant_name || admission.first_name + ' ' + admission.last_name}</p>
+                          <p className="text-xs text-gray-600">
+                            {admission.programme_applied} - {new Date(admission.applied_on).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No recent admissions</p>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900">John Doe</p>
-                      <p className="text-xs text-gray-600">Computer Science - Jan 15, 2024</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Users className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900">Jane Smith</p>
-                      <p className="text-xs text-gray-600">Mechanical Engineering - Feb 1, 2024</p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -489,24 +499,26 @@ export default function Dashboard() {
                 </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <FileText className="h-5 w-5 text-orange-600" />
+                  {upcomingExams.length > 0 ? (
+                    upcomingExams.map((exam, index) => (
+                      <div key={exam.exam_id || index} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                        <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <FileText className="h-5 w-5 text-orange-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900">{exam.subject || exam.course_name || 'Exam'}</p>
+                          <p className="text-xs text-gray-600">
+                            {new Date(exam.exam_date).toLocaleDateString()} - {exam.course_id || exam.course_code || 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No upcoming exams</p>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900">Data Structures</p>
-                      <p className="text-xs text-gray-600">Dec 15, 2024 - CS-101</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <FileText className="h-5 w-5 text-orange-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900">Thermodynamics</p>
-                      <p className="text-xs text-gray-600">Dec 18, 2024 - ME-201</p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -9,6 +9,8 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Card, { CardContent, CardHeader } from '../../components/ui/Card';
 import { apiService } from '../../services/apiService';
+import FeeMasterModal from '../../components/fees/FeeMasterModal';
+import { ConfirmModal } from '../../components/ui/Modal';
 import {
   Search,
   CreditCard,
@@ -39,7 +41,12 @@ export default function FeesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showFeeStructureModal, setShowFeeStructureModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedFee, setSelectedFee] = useState(null);
+  const [selectedFeeStructure, setSelectedFeeStructure] = useState(null);
+  const [modalMode, setModalMode] = useState('create');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const isStudent = user?.role === USER_ROLES.STUDENT;
   const isAdmin = user?.role === USER_ROLES.ADMIN;
@@ -85,6 +92,43 @@ export default function FeesPage() {
       setSelectedFee(null);
     } catch (error) {
       console.error('Error processing payment:', error);
+    }
+  };
+
+  // Fee Structure CRUD handlers
+  const handleCreateFeeStructure = () => {
+    setSelectedFeeStructure(null);
+    setModalMode('create');
+    setShowFeeStructureModal(true);
+  };
+
+  const handleEditFeeStructure = (feeStructure) => {
+    setSelectedFeeStructure(feeStructure);
+    setModalMode('edit');
+    setShowFeeStructureModal(true);
+  };
+
+  const handleDeleteClick = (feeStructure) => {
+    setSelectedFeeStructure(feeStructure);
+    setShowDeleteModal(true);
+  };
+
+  const handleFeeStructureSuccess = (feeStructure) => {
+    fetchData();
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedFeeStructure) return;
+    
+    try {
+      setIsDeleting(true);
+      await apiService.deleteFeeStructure(selectedFeeStructure.fee_id || selectedFeeStructure.id);
+      fetchData();
+      setShowDeleteModal(false);
+    } catch (error) {
+      console.error('Error deleting fee structure:', error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -320,7 +364,7 @@ export default function FeesPage() {
               <Download className="h-5 w-5 mr-2" />
               Export
             </Button>
-            <Button variant="primary">
+            <Button variant="primary" onClick={handleCreateFeeStructure}>
               <Plus className="h-5 w-5 mr-2" />
               Add Fee Structure
             </Button>
@@ -517,10 +561,19 @@ export default function FeesPage() {
                       <p className="text-sm text-slate-600">Semester {structure.semester} • {structure.academicYear}</p>
                     </div>
                     <div className="flex space-x-2">
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleEditFeeStructure(structure)}
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-red-600 hover:bg-red-50"
+                        onClick={() => handleDeleteClick(structure)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -628,6 +681,27 @@ export default function FeesPage() {
           </Card>
         </div>
       )}
+
+      {/* Fee Structure Modal */}
+      <FeeMasterModal
+        isOpen={showFeeStructureModal}
+        onClose={() => setShowFeeStructureModal(false)}
+        onSuccess={handleFeeStructureSuccess}
+        feeMaster={selectedFeeStructure}
+        mode={modalMode}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Fee Structure"
+        message={`Are you sure you want to delete the fee structure for ${selectedFeeStructure?.course || 'this program'}? This action cannot be undone.`}
+        confirmText="Delete"
+        confirmVariant="danger"
+        isLoading={isDeleting}
+      />
     </Layout>
   );
 }

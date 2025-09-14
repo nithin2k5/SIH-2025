@@ -303,3 +303,112 @@ function getFeeStats() {
 
   return { success: true, stats };
 }
+
+/**
+ * Create a new fee structure
+ */
+function createFeeStructure(feeData) {
+  // Validate required fields
+  const required = ['fee_id', 'component', 'amount'];
+  const missing = validateRequired(feeData, required);
+  if (missing) {
+    return { success: false, error: `Missing required fields: ${missing.join(', ')}` };
+  }
+
+  const feeMasterSheet = getSheet('FeeMaster');
+  if (!feeMasterSheet) {
+    return { success: false, error: 'FeeMaster sheet not found' };
+  }
+
+  // Check if fee structure already exists
+  const existingFee = findRowById(feeMasterSheet, 'fee_id', feeData.fee_id);
+  if (existingFee) {
+    return { success: false, error: 'Fee structure with this ID already exists' };
+  }
+
+  // Create new fee structure
+  const now = getCurrentTimestamp();
+  const newFeeStructure = {
+    fee_id: feeData.fee_id,
+    programme_id: feeData.programme_id || feeData.course || '',
+    component: feeData.component,
+    amount: feeData.amount,
+    currency: feeData.currency || 'INR',
+    effective_from: feeData.effective_from || now,
+    effective_to: feeData.effective_to || '',
+    category: feeData.category || 'Tuition',
+    created_at: now,
+    updated_at: now
+  };
+
+  // Add to sheet
+  const headers = feeMasterSheet.getRange(1, 1, 1, feeMasterSheet.getLastColumn()).getValues()[0];
+  const rowData = headers.map(header => newFeeStructure[header] || '');
+
+  feeMasterSheet.appendRow(rowData);
+
+  // Log audit
+  logAudit('FeeMaster', newFeeStructure.fee_id, 'create', null, newFeeStructure);
+
+  return { success: true, feeStructure: newFeeStructure };
+}
+
+/**
+ * Update a fee structure
+ */
+function updateFeeStructure(feeId, updateData) {
+  const feeMasterSheet = getSheet('FeeMaster');
+  if (!feeMasterSheet) {
+    return { success: false, error: 'FeeMaster sheet not found' };
+  }
+
+  const result = findRowById(feeMasterSheet, 'fee_id', feeId);
+  if (!result) {
+    return { success: false, error: 'Fee structure not found' };
+  }
+
+  const headers = feeMasterSheet.getRange(1, 1, 1, feeMasterSheet.getLastColumn()).getValues()[0];
+  const currentFee = rowToObject(headers, result.rowData);
+
+  // Update fields
+  const updatedFee = {
+    ...currentFee,
+    ...updateData,
+    updated_at: getCurrentTimestamp()
+  };
+
+  // Update row
+  const rowData = headers.map(header => updatedFee[header] || '');
+  feeMasterSheet.getRange(result.rowIndex, 1, 1, headers.length).setValues([rowData]);
+
+  // Log audit
+  logAudit('FeeMaster', feeId, 'update', currentFee, updatedFee);
+
+  return { success: true, feeStructure: updatedFee };
+}
+
+/**
+ * Delete a fee structure
+ */
+function deleteFeeStructure(feeId) {
+  const feeMasterSheet = getSheet('FeeMaster');
+  if (!feeMasterSheet) {
+    return { success: false, error: 'FeeMaster sheet not found' };
+  }
+
+  const result = findRowById(feeMasterSheet, 'fee_id', feeId);
+  if (!result) {
+    return { success: false, error: 'Fee structure not found' };
+  }
+
+  const headers = feeMasterSheet.getRange(1, 1, 1, feeMasterSheet.getLastColumn()).getValues()[0];
+  const currentFee = rowToObject(headers, result.rowData);
+
+  // Delete row
+  feeMasterSheet.deleteRow(result.rowIndex);
+
+  // Log audit
+  logAudit('FeeMaster', feeId, 'delete', currentFee, null);
+
+  return { success: true, message: 'Fee structure deleted successfully' };
+}

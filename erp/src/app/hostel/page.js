@@ -8,6 +8,9 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Card, { CardContent, CardHeader } from '../../components/ui/Card';
 import { apiService } from '../../services/apiService';
+import HostelRoomModal from '../../components/hostel/HostelRoomModal';
+import HostelAllocationModal from '../../components/hostel/HostelAllocationModal';
+import { ConfirmModal } from '../../components/ui/Modal';
 import {
   Building,
   Users,
@@ -41,8 +44,12 @@ export default function HostelPage() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterBlock, setFilterBlock] = useState('all');
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [selectedAllocation, setSelectedAllocation] = useState(null);
   const [showAllocationModal, setShowAllocationModal] = useState(false);
   const [showRoomModal, setShowRoomModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [modalMode, setModalMode] = useState('create');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const isStudent = user?.role === USER_ROLES.STUDENT;
   const isHostelWarden = user?.role === USER_ROLES.HOSTEL_WARDEN;
@@ -64,9 +71,47 @@ export default function HostelPage() {
     }
   };
 
+  // Room CRUD handlers
+  const handleCreateRoom = () => {
+    setSelectedRoom(null);
+    setModalMode('create');
+    setShowRoomModal(true);
+  };
+
+  const handleEditRoom = (room) => {
+    setSelectedRoom(room);
+    setModalMode('edit');
+    setShowRoomModal(true);
+  };
+
+  const handleDeleteRoomClick = (room) => {
+    setSelectedRoom(room);
+    setShowDeleteModal(true);
+  };
+
+  const handleRoomSuccess = (room) => {
+    fetchData();
+  };
+
+  const handleDeleteRoomConfirm = async () => {
+    if (!selectedRoom) return;
+    
+    try {
+      setIsDeleting(true);
+      await apiService.deleteHostelRoom(selectedRoom.room_id || selectedRoom.id);
+      fetchData();
+      setShowDeleteModal(false);
+    } catch (error) {
+      console.error('Error deleting hostel room:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Allocation handlers
   const handleRoomAllocation = async (studentId, roomId) => {
     try {
-      await apiService.allocateRoom(studentId, roomId);
+      await apiService.allocateHostelRoom(studentId, roomId);
       fetchData();
       setShowAllocationModal(false);
       setSelectedRoom(null);
@@ -77,7 +122,7 @@ export default function HostelPage() {
 
   const handleRoomDeallocation = async (studentId) => {
     try {
-      await apiService.deallocateRoom(studentId);
+      await apiService.deallocateHostelRoom(studentId);
       fetchData();
     } catch (error) {
       console.error('Error deallocating room:', error);
@@ -104,12 +149,14 @@ export default function HostelPage() {
   const blocks = [...new Set(rooms.map(room => room.block))];
 
   const filteredRooms = rooms.filter(room => {
-    const matchesSearch = room.roomNumber.toLowerCase().includes(searchTerm.toLowerCase());
+    // Use room_no as fallback if roomNumber is not available
+    const roomNumber = room.roomNumber || room.room_no || '';
+    const matchesSearch = roomNumber.toString().toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || 
-                         (filterStatus === 'available' && room.occupied < room.capacity) ||
-                         (filterStatus === 'occupied' && room.occupied >= room.capacity) ||
+                         (filterStatus === 'available' && room.status === 'available') ||
+                         (filterStatus === 'occupied' && room.status === 'occupied') ||
                          (filterStatus === 'maintenance' && room.status === 'maintenance');
-    const matchesBlock = filterBlock === 'all' || room.block === filterBlock;
+    const matchesBlock = filterBlock === 'all' || (room.block || '').toString() === filterBlock;
     return matchesSearch && matchesStatus && matchesBlock;
   });
 
@@ -324,7 +371,7 @@ export default function HostelPage() {
               </p>
             </div>
           </div>
-          <Button variant="primary" onClick={() => setShowRoomModal(true)}>
+          <Button variant="primary" onClick={handleCreateRoom}>
             <Plus className="h-5 w-5 mr-2" />
             Add Room
           </Button>
@@ -506,8 +553,20 @@ export default function HostelPage() {
                         Allocate
                           </Button>
                         )}
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleEditRoom(room)}
+                    >
                       <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-red-600 hover:bg-red-50"
+                      onClick={() => handleDeleteRoomClick(room)}
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                       </div>
                     </div>
@@ -530,61 +589,35 @@ export default function HostelPage() {
       )}
 
       {/* Room Allocation Modal */}
-      {showAllocationModal && selectedRoom && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card variant="elevated" className="w-full max-w-md mx-4">
-            <CardHeader variant="gradient">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-slate-900">Allocate Room {selectedRoom.roomNumber}</h3>
-                <button
-                  onClick={() => {
-                    setShowAllocationModal(false);
-                    setSelectedRoom(null);
-                  }}
-                  className="text-slate-400 hover:text-slate-600"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-            </CardHeader>
-            <CardContent padding="lg">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Student ID/Registration Number</label>
-                  <Input placeholder="Enter student ID or registration number" />
-                </div>
-                
-                <div className="text-sm text-slate-600">
-                  <p><strong>Room:</strong> {selectedRoom.roomNumber}</p>
-                  <p><strong>Block:</strong> {selectedRoom.block}</p>
-                  <p><strong>Available Spaces:</strong> {selectedRoom.capacity - selectedRoom.occupied}</p>
-                  <p><strong>Monthly Rent:</strong> ₹{selectedRoom.monthlyRent.toLocaleString()}</p>
-                </div>
+      <HostelAllocationModal
+        isOpen={showAllocationModal}
+        onClose={() => setShowAllocationModal(false)}
+        onSuccess={handleRoomSuccess}
+        allocation={selectedAllocation}
+        room={selectedRoom}
+        mode="create"
+      />
 
-                <div className="flex space-x-3 pt-4">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => {
-                      setShowAllocationModal(false);
-                      setSelectedRoom(null);
-                    }}
-                  >
-                    Cancel
-                              </Button>
-                  <Button
-                    variant="primary"
-                    className="flex-1"
-                    onClick={() => handleRoomAllocation('student-id', selectedRoom.id)}
-                  >
-                    Allocate Room
-                              </Button>
-                            </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        )}
+      {/* Room Modal */}
+      <HostelRoomModal
+        isOpen={showRoomModal}
+        onClose={() => setShowRoomModal(false)}
+        onSuccess={handleRoomSuccess}
+        room={selectedRoom}
+        mode={modalMode}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteRoomConfirm}
+        title="Delete Hostel Room"
+        message={`Are you sure you want to delete room ${selectedRoom?.room_no || selectedRoom?.roomNumber || 'this room'}? This action cannot be undone.`}
+        confirmText="Delete"
+        confirmVariant="danger"
+        isLoading={isDeleting}
+      />
     </Layout>
   );
 }
