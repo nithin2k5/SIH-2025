@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../contexts/AuthContext';
 import { USER_ROLES } from '../../types';
@@ -31,6 +32,7 @@ import {
 
 export default function FeesPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
   const [fees, setFees] = useState([]);
   const [feeStructures, setFeeStructures] = useState([]);
@@ -53,17 +55,17 @@ export default function FeesPage() {
     try {
       if (isStudent) {
         // Student view - load their fees only
-        const feesData = await apiService.getFees(user.id);
-        setFees(feesData);
+        const response = await apiService.getFees({ studentId: user.id });
+        setFees(response.fees || []);
       } else {
         // Admin/Staff view - load all data
-        const [feesData, structuresData, paymentsData] = await Promise.all([
+        const [feesResponse, structuresResponse, paymentsData] = await Promise.all([
           apiService.getFees(),
           apiService.getFeeStructures(),
           apiService.getPayments()
         ]);
-        setFees(feesData);
-        setFeeStructures(structuresData);
+        setFees(feesResponse.fees || []);
+        setFeeStructures(structuresResponse.structures || []);
         setPayments(paymentsData.payments || []);
       }
     } catch (error) {
@@ -320,7 +322,7 @@ export default function FeesPage() {
               <Download className="h-5 w-5 mr-2" />
               Export
             </Button>
-            <Button variant="primary">
+            <Button variant="primary" onClick={() => router.push('/fees/add')}>
               <Plus className="h-5 w-5 mr-2" />
               Add Fee Structure
             </Button>

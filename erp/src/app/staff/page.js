@@ -56,12 +56,41 @@ export default function StaffPage() {
         apiService.getExams()
       ]);
 
-      setStudents(studentsData.students || []);
-      setFees(feesData);
+      // Map students to match expected structure
+      const mappedStudents = (studentsData.students || []).map(student => ({
+        ...student,
+        name: `${student.first_name} ${student.last_name}`,
+        registrationNumber: student.student_id,
+        department: student.programme,
+        email: student.email,
+        status: student.status,
+        semester: student.semester
+      }));
+
+      // Map exams to match expected structure
+      const mappedExams = (examsData.exams || []).map(exam => ({
+        ...exam,
+        id: exam.exam_id,
+        examDate: exam.exam_date,
+        subject: exam.subject,
+        course: exam.course,
+        startTime: exam.startTime,
+        endTime: exam.endTime,
+        room: exam.room,
+        status: exam.status
+      }));
+
+      setStudents(mappedStudents);
+      setFees(Array.isArray(feesData) ? feesData : []);
       setPayments(paymentsData.payments || []);
-      setExams(examsData.exams || []);
+      setExams(mappedExams);
     } catch (error) {
       console.error('Error fetching staff panel data:', error);
+      // Set empty arrays on error to prevent UI crashes
+      setStudents([]);
+      setFees([]);
+      setPayments([]);
+      setExams([]);
     } finally {
       setLoading(false);
     }

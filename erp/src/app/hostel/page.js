@@ -43,6 +43,14 @@ export default function HostelPage() {
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [showAllocationModal, setShowAllocationModal] = useState(false);
   const [showRoomModal, setShowRoomModal] = useState(false);
+  const [newRoomData, setNewRoomData] = useState({
+    roomNumber: '',
+    block: '',
+    floor: 1,
+    capacity: 2,
+    monthlyRent: 5000,
+    amenities: ['WiFi', 'AC']
+  });
 
   const isStudent = user?.role === USER_ROLES.STUDENT;
   const isHostelWarden = user?.role === USER_ROLES.HOSTEL_WARDEN;
@@ -81,6 +89,33 @@ export default function HostelPage() {
       fetchData();
     } catch (error) {
       console.error('Error deallocating room:', error);
+    }
+  };
+
+  const handleCreateRoom = async () => {
+    try {
+      const roomData = {
+        roomNumber: newRoomData.roomNumber,
+        block: newRoomData.block,
+        floor: parseInt(newRoomData.floor),
+        capacity: parseInt(newRoomData.capacity),
+        monthlyRent: parseInt(newRoomData.monthlyRent),
+        amenities: newRoomData.amenities
+      };
+
+      await apiService.createHostelRoom(roomData);
+      fetchData();
+      setShowRoomModal(false);
+      setNewRoomData({
+        roomNumber: '',
+        block: '',
+        floor: 1,
+        capacity: 2,
+        monthlyRent: 5000,
+        amenities: ['WiFi', 'AC']
+      });
+    } catch (error) {
+      console.error('Error creating room:', error);
     }
   };
 
@@ -189,7 +224,7 @@ export default function HostelPage() {
                   <h4 className="text-lg font-semibold text-slate-900 mb-3">Roommates</h4>
                   <div className="space-y-3">
                     {studentRoom.students?.filter(s => s.id !== user.id).map((roommate, index) => (
-                      <div key={index} className="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg">
+                      <div key={roommate.id || index} className="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg">
                         <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
                           <User className="h-5 w-5 text-white" />
                         </div>
@@ -432,7 +467,7 @@ export default function HostelPage() {
       {/* Rooms Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredRooms.map((room, index) => (
-          <Card key={room.id} variant="elevated" className="animate-slide-up" style={{animationDelay: `${index * 50}ms`}}>
+          <Card key={room.room_id} variant="elevated" className="animate-slide-up" style={{animationDelay: `${index * 50}ms`}}>
             <CardHeader variant="gradient" className="pb-4">
               <div className="flex items-center justify-between">
                     <div>
@@ -585,6 +620,124 @@ export default function HostelPage() {
           </Card>
         </div>
         )}
+
+      {/* Add Room Modal */}
+      {showRoomModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card variant="elevated" className="w-full max-w-lg mx-4">
+            <CardHeader variant="gradient">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-slate-900">Add New Room</h3>
+                <button
+                  onClick={() => setShowRoomModal(false)}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent padding="lg">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Room Number</label>
+                    <Input
+                      placeholder="e.g., A-101"
+                      value={newRoomData.roomNumber}
+                      onChange={(e) => setNewRoomData({...newRoomData, roomNumber: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Block</label>
+                    <Input
+                      placeholder="e.g., A"
+                      value={newRoomData.block}
+                      onChange={(e) => setNewRoomData({...newRoomData, block: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Floor</label>
+                    <select
+                      value={newRoomData.floor}
+                      onChange={(e) => setNewRoomData({...newRoomData, floor: e.target.value})}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      {[1,2,3,4,5].map(floor => (
+                        <option key={floor} value={floor}>{floor}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Capacity</label>
+                    <select
+                      value={newRoomData.capacity}
+                      onChange={(e) => setNewRoomData({...newRoomData, capacity: e.target.value})}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      {[1,2,3,4].map(cap => (
+                        <option key={cap} value={cap}>{cap} students</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Monthly Rent (₹)</label>
+                  <Input
+                    type="number"
+                    placeholder="5000"
+                    value={newRoomData.monthlyRent}
+                    onChange={(e) => setNewRoomData({...newRoomData, monthlyRent: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Amenities</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {['WiFi', 'AC', 'Attached Bathroom', 'Study Table', 'Cupboard', 'Balcony'].map(amenity => (
+                      <label key={amenity} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={newRoomData.amenities.includes(amenity)}
+                          onChange={(e) => {
+                            const amenities = e.target.checked
+                              ? [...newRoomData.amenities, amenity]
+                              : newRoomData.amenities.filter(a => a !== amenity);
+                            setNewRoomData({...newRoomData, amenities});
+                          }}
+                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-slate-700">{amenity}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setShowRoomModal(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    className="flex-1"
+                    onClick={handleCreateRoom}
+                    disabled={!newRoomData.roomNumber || !newRoomData.block}
+                  >
+                    Add Room
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </Layout>
   );
 }

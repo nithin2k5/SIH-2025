@@ -21,24 +21,41 @@ export function AuthProvider({ children }) {
     };
 
     const cookieUser = getCookie('erp-user');
-    if (cookieUser) {
+    if (cookieUser && cookieUser !== 'undefined' && cookieUser !== '') {
       try {
         const user = JSON.parse(decodeURIComponent(cookieUser));
-        setUser(user);
+        if (user && typeof user === 'object') {
+          setUser(user);
+          // Set current user in apiService for role-based filtering
+          apiService.setCurrentUser(user);
+        }
       } catch (error) {
         console.error('Error parsing user cookie:', error);
+        // Clear invalid cookie
+        document.cookie = 'erp-user=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
       }
     } else {
+      // Clear invalid cookie if it exists
+      if (cookieUser) {
+        document.cookie = 'erp-user=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+      }
+
       // Fallback to localStorage
       const storedUser = localStorage.getItem('erp-user');
-      if (storedUser) {
+      if (storedUser && storedUser !== 'undefined' && storedUser !== '') {
         try {
           const user = JSON.parse(storedUser);
-          setUser(user);
-          // Also set cookie for consistency
-          document.cookie = `erp-user=${encodeURIComponent(JSON.stringify(user))}; path=/; max-age=86400`; // 24 hours
+          if (user && typeof user === 'object') {
+            setUser(user);
+            // Set current user in apiService for role-based filtering
+            apiService.setCurrentUser(user);
+            // Also set cookie for consistency
+            document.cookie = `erp-user=${encodeURIComponent(JSON.stringify(user))}; path=/; max-age=86400`; // 24 hours
+          }
         } catch (error) {
           console.error('Error parsing user localStorage:', error);
+          // Clear invalid localStorage
+          localStorage.removeItem('erp-user');
         }
       }
     }
@@ -50,15 +67,25 @@ export function AuthProvider({ children }) {
 
     try {
       const response = await apiService.login({ email, password });
+
       const user = response.user;
       const token = response.token;
+
+      // Validate user data before storing
+      if (!user || typeof user !== 'object') {
+        console.error('Invalid user data received:', user);
+        throw new Error('Invalid user data received');
+      }
 
       // Store user data and token
       setUser(user);
       localStorage.setItem('erp-user', JSON.stringify(user));
       localStorage.setItem('erp-token', token);
 
-      // Set cookie for consistency
+      // Set current user in apiService for role-based filtering
+      apiService.setCurrentUser(user);
+
+      // Set cookie for consistency (only if user is valid)
       document.cookie = `erp-user=${encodeURIComponent(JSON.stringify(user))}; path=/; max-age=86400`;
 
       setLoading(false);
@@ -78,6 +105,8 @@ export function AuthProvider({ children }) {
     } finally {
       // Clear local state regardless of API call success
       setUser(null);
+      // Clear current user from apiService
+      apiService.setCurrentUser(null);
       localStorage.removeItem('erp-user');
       localStorage.removeItem('erp-token');
       // Clear cookie as well

@@ -38,9 +38,14 @@ export default function StudentCoursesPage() {
           apiService.getCourses({ available: true }),
           apiService.getTimetable({ studentId: user?.id })
         ]);
-        
-        setEnrolledCourses(enrolledData);
-        setAvailableCourses(availableData.courses || []);
+
+        setEnrolledCourses(enrolledData || []);
+        // Filter out courses that the student is already enrolled in
+        const enrolledCourseIds = (enrolledData || []).map(course => course.course_id || course.id);
+        const filteredAvailableCourses = (availableData.courses || []).filter(course =>
+          !enrolledCourseIds.includes(course.course_id || course.id)
+        );
+        setAvailableCourses(filteredAvailableCourses);
         setTimetable(timetableData);
       } catch (error) {
         console.error('Error fetching courses data:', error);
@@ -57,13 +62,26 @@ export default function StudentCoursesPage() {
   const handleCourseRegistration = async (courseId) => {
     try {
       await apiService.registerForCourse(user.id, courseId);
-      // Refresh data
-      const enrolledData = await apiService.getStudentCourses(user.id);
-      setEnrolledCourses(enrolledData);
-      // Remove from available courses
-      setAvailableCourses(prev => prev.filter(course => course.id !== courseId));
+
+      // Refresh all data
+      const [enrolledData, availableData] = await Promise.all([
+        apiService.getStudentCourses(user.id),
+        apiService.getCourses({ available: true })
+      ]);
+
+      setEnrolledCourses(enrolledData || []);
+      // Filter out courses that the student is already enrolled in
+      const enrolledCourseIds = (enrolledData || []).map(course => course.course_id || course.id);
+      const filteredAvailableCourses = (availableData.courses || []).filter(course =>
+        !enrolledCourseIds.includes(course.course_id || course.id)
+      );
+      setAvailableCourses(filteredAvailableCourses);
+
+      // Show success message
+      alert('Successfully registered for the course!');
     } catch (error) {
       console.error('Error registering for course:', error);
+      alert('Failed to register for the course. Please try again.');
     }
   };
 
@@ -133,7 +151,7 @@ export default function StudentCoursesPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {enrolledCourses.map((course, index) => (
-              <Card key={course.id} variant="elevated" className="animate-slide-up" style={{animationDelay: `${index * 100}ms`}}>
+              <Card key={course.id || course.course_id || index} variant="elevated" className="animate-slide-up" style={{animationDelay: `${index * 100}ms`}}>
                 <CardHeader variant="gradient" className="pb-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -206,7 +224,7 @@ export default function StudentCoursesPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {availableCourses.map((course, index) => (
-              <Card key={course.id} variant="elevated" className="animate-slide-up" style={{animationDelay: `${index * 100}ms`}}>
+              <Card key={course.course_id || course.id || index} variant="elevated" className="animate-slide-up" style={{animationDelay: `${index * 100}ms`}}>
                 <CardHeader variant="gradient" className="pb-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -261,7 +279,7 @@ export default function StudentCoursesPage() {
                         <Button 
                           variant="primary" 
                           size="sm"
-                          onClick={() => handleCourseRegistration(course.id)}
+                          onClick={() => handleCourseRegistration(course.course_id || course.id)}
                           disabled={course.enrolledStudents >= course.maxStudents}
                         >
                           <Plus className="h-4 w-4 mr-2" />

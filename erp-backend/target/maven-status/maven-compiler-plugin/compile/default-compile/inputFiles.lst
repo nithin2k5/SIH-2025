@@ -1,0 +1,14 @@
+/Users/nithink/Developer/next/perp/erp-backend/src/main/java/com/college/erp/security/SecurityConfig.java
+/Users/nithink/Developer/next/perp/erp-backend/src/main/java/com/college/erp/controller/DashboardController.java
+/Users/nithink/Developer/next/perp/erp-backend/src/main/java/com/college/erp/config/DataInitializer.java
+/Users/nithink/Developer/next/perp/erp-backend/src/main/java/com/college/erp/service/JwtService.java
+/Users/nithink/Developer/next/perp/erp-backend/src/main/java/com/college/erp/service/UserService.java
+/Users/nithink/Developer/next/perp/erp-backend/src/main/java/com/college/erp/service/DashboardService.java
+/Users/nithink/Developer/next/perp/erp-backend/src/main/java/com/college/erp/ErpBackendApplication.java
+/Users/nithink/Developer/next/perp/erp-backend/src/main/java/com/college/erp/repository/UserRepository.java
+/Users/nithink/Developer/next/perp/erp-backend/src/main/java/com/college/erp/entity/User.java
+/Users/nithink/Developer/next/perp/erp-backend/src/main/java/com/college/erp/service/AuthService.java
+/Users/nithink/Developer/next/perp/erp-backend/src/main/java/com/college/erp/controller/AuthController.java
+/Users/nithink/Developer/next/perp/erp-backend/src/main/java/com/college/erp/entity/Student.java
+/Users/nithink/Developer/next/perp/erp-backend/src/main/java/com/college/erp/repository/StudentRepository.java
+/Users/nithink/Developer/next/perp/erp-backend/src/main/java/com/college/erp/security/JwtAuthenticationFilter.java

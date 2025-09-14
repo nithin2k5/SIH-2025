@@ -56,7 +56,12 @@ export default function ExamsPage() {
           apiService.getExams({ studentId: user.id }),
           apiService.getExamResults(user.id)
         ]);
-        setExams(examsData.exams || []);
+        // Map exams to ensure they have id property
+        const mappedExams = (examsData.exams || []).map(exam => ({
+          ...exam,
+          id: exam.id || exam.exam_id
+        }));
+        setExams(mappedExams);
         setExamResults(resultsData);
       } else {
         // Admin/Staff view - load all data
@@ -64,7 +69,12 @@ export default function ExamsPage() {
           apiService.getExams(),
           apiService.getExamResults()
         ]);
-        setExams(examsData.exams || []);
+        // Map exams to ensure they have id property
+        const mappedExams = (examsData.exams || []).map(exam => ({
+          ...exam,
+          id: exam.id || exam.exam_id
+        }));
+        setExams(mappedExams);
         setExamResults(resultsData);
       }
     } catch (error) {

@@ -137,23 +137,6 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-300" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-slate-500">Demo Accounts</span>
-                </div>
-              </div>
-
-              <div className="mt-4 text-xs text-slate-600 space-y-1 bg-slate-50 p-3 rounded-lg">
-                <p><strong>Admin:</strong> admin@college.edu / password</p>
-                <p><strong>Staff:</strong> staff@college.edu / password</p>
-                <p><strong>Hostel Warden:</strong> warden@college.edu / password</p>
-                <p><strong>Student:</strong> student@college.edu / password</p>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>
